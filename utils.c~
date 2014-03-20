@@ -804,7 +804,6 @@ int rateMove(Board board, int move, int depth){
 
 int moveSearch(Board board, int depth, int* score) {
 	int numMoves, moves[120], sign, move = -1, i;
-	char str[21];
 	numMoves = getMoves(board, moves);
 	if (board.ply % 2) {	//black to move, minimize
 		int min = VAL[WK];

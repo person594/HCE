@@ -273,7 +273,7 @@ void makeMove(Board* board, move mov) {
 						board->bits[OCCUPIED] |= b1;
 						for (n = 0; board->pieces[prom][n] != NO_SQUARE; n++);		//update piece list
 						board->pieces[prom][n] = p1;
-						board->score += VAL[prom] - VAL[i];
+						board->score += VAL[prom];
 					}
 				} else if (i == BP){
 					if (p0 - p1 == 16){		//double ahead, set enpassant
@@ -287,7 +287,7 @@ void makeMove(Board* board, move mov) {
 						board->bits[OCCUPIED] |= b1;
 						for (n = 0; board->pieces[prom][n] != NO_SQUARE; n++);		//update piece list
 						board->pieces[prom][n] = p1;
-						board->score += VAL[prom] - VAL[i];
+						board->score += VAL[prom];
 					}
 				} else if (i == WK || i == BK){
 					//prevent castling from side who moved their king

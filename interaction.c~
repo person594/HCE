@@ -139,7 +139,7 @@ void toAlg(Board board, int move, char* str) {
 	to = TO(move);
 	from = FROM(move);
 	prom = PROM(move);
-	if (board.pieces[WK+sd][0] == from) {
+	if (board.pieces[WK+sd][0] == from) {		//if the moving piece is a king, possible castling notation
 		if (to - from == 2) {
 			strcpy(str, "O-O");
 			return;
