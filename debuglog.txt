@@ -1,0 +1,505 @@
+r       k   n r 
+          p p p 
+  P n           
+p B             
+P b             
+      R B P   q 
+  P       P   P 
+  N   Q   K   R 
+  
+r3k1nr/5ppp/1Pn5/pB6/Pb6/3RBP1q/1P3P1P/1N1Q1K1R w kq
+
+e4		c5
+Nf3		a6
+a4		d5
+c4		a5
+d3		b6
+Ra3		d5
+cxd5	c4
+dxc4	Qd6
+e5		Qc5
+Be3		Qc5
+Rb3		b5
+d6		exd6
+exd6	Bxd6
+cxb5	Bg4
+b6		Qd7
+Bb5		Nc6
+Rd3		Bxf3
+gxf3	Bb4+
+Kf1		Qh3+
+Kgi : invalid move???
+
+r n b q k b n r 
+p p p p p p p p 
+                
+                
+                
+                
+P P P P P P P P 
+R N B Q K B N R 
+
+White's move:
+e4
+
+r n b q k b n r 
+p p p p p p p p 
+                
+                
+        P       
+                
+P P P P   P P P 
+R N B Q K B N R 
+
+Black's move:
+30898
+
+r n b q k b n r 
+p p   p p p p p 
+                
+    p           
+        P       
+                
+P P P P   P P P 
+R N B Q K B N R 
+
+White's move:
+Nf3
+
+r n b q k b n r 
+p p   p p p p p 
+                
+    p           
+        P       
+          N     
+P P P P   P P P 
+R N B Q K B   R 
+
+Black's move:
+31280
+
+r n b q k b n r 
+  p   p p p p p 
+p               
+    p           
+        P       
+          N     
+P P P P   P P P 
+R N B Q K B   R 
+
+White's move:
+a4
+
+r n b q k b n r 
+  p   p p p p p 
+p               
+    p           
+P       P       
+          N     
+  P P P   P P P 
+R N B Q K B   R 
+
+Black's move:
+31475
+
+r n b q k b n r 
+  p     p p p p 
+p     p         
+    p           
+P       P       
+          N     
+  P P P   P P P 
+R N B Q K B   R 
+
+White's move:
+c4
+
+r n b q k b n r 
+  p     p p p p 
+p     p         
+    p           
+P   P   P       
+          N     
+  P   P   P P P 
+R N B Q K B   R 
+
+Black's move:
+30760
+
+r n b q k b n r 
+  p     p p p p 
+      p         
+p   p           
+P   P   P       
+          N     
+  P   P   P P P 
+R N B Q K B   R 
+
+White's move:
+d3
+
+r n b q k b n r 
+  p     p p p p 
+      p         
+p   p           
+P   P   P       
+      P   N     
+  P       P P P 
+R N B Q K B   R 
+
+Black's move:
+31345
+
+r n b q k b n r 
+        p p p p 
+  p   p         
+p   p           
+P   P   P       
+      P   N     
+  P       P P P 
+R N B Q K B   R 
+
+White's move:
+Ra3
+
+r n b q k b n r 
+        p p p p 
+  p   p         
+p   p           
+P   P   P       
+R     P   N     
+  P       P P P 
+  N B Q K B   R 
+
+Black's move:
+30955
+
+r n b q k b n r 
+        p p p p 
+  p             
+p   p p         
+P   P   P       
+R     P   N     
+  P       P P P 
+  N B Q K B   R 
+
+White's move:
+d5
+ambiguous move.
+cxd5
+
+r n b q k b n r 
+        p p p p 
+  p             
+p   p P         
+P       P       
+R     P   N     
+  P       P P P 
+  N B Q K B   R 
+
+Black's move:
+30370
+
+r n b q k b n r 
+        p p p p 
+  p             
+p     P         
+P   p   P       
+R     P   N     
+  P       P P P 
+  N B Q K B   R 
+
+White's move:
+dxc4
+
+r n b q k b n r 
+        p p p p 
+  p             
+p     P         
+P   P   P       
+R         N     
+  P       P P P 
+  N B Q K B   R 
+
+Black's move:
+31483
+
+r n b   k b n r 
+        p p p p 
+  p   q         
+p     P         
+P   P   P       
+R         N     
+  P       P P P 
+  N B Q K B   R 
+
+White's move:
+e5
+
+r n b   k b n r 
+        p p p p 
+  p   q         
+p     P P       
+P   P           
+R         N     
+  P       P P P 
+  N B Q K B   R 
+
+Black's move:
+30891
+
+r n b   k b n r 
+        p p p p 
+  p             
+p   q P P       
+P   P           
+R         N     
+  P       P P P 
+  N B Q K B   R 
+
+White's move:
+Be3
+
+r n b   k b n r 
+        p p p p 
+  p             
+p   q P P       
+P   P           
+R       B N     
+  P       P P P 
+  N   Q K B   R 
+
+Black's move:
+31906
+
+r n b   k b n r 
+    q   p p p p 
+  p             
+p     P P       
+P   P           
+R       B N     
+  P       P P P 
+  N   Q K B   R 
+
+White's move:
+Rb3
+
+r n b   k b n r 
+    q   p p p p 
+  p             
+p     P P       
+P   P           
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+Black's move:
+30825
+
+r n b   k b n r 
+    q   p p p p 
+                
+p p   P P       
+P   P           
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+White's move:
+d6
+
+r n b   k b n r 
+    q   p p p p 
+      P         
+p p     P       
+P   P           
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+Black's move:
+31476
+
+r n b   k b n r 
+    q     p p p 
+      p         
+p p     P       
+P   P           
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+White's move:
+d6
+
+r n b   k b n r 
+    q     p p p 
+      P         
+p p             
+P   P           
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+Black's move:
+31485
+
+r n b   k   n r 
+    q     p p p 
+      b         
+p p             
+P   P           
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+White's move:
+cxb5
+
+r n b   k   n r 
+    q     p p p 
+      b         
+p P             
+P               
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+Black's move:
+30650
+
+r n     k   n r 
+    q     p p p 
+      b         
+p P             
+P           b   
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+White's move:
+b5
+invalid move.
+b6
+
+r n     k   n r 
+    q     p p p 
+  P   b         
+p               
+P           b   
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+Black's move:
+31986
+
+r n     k   n r 
+      q   p p p 
+  P   b         
+p               
+P           b   
+  R     B N     
+  P       P P P 
+  N   Q K B   R 
+
+White's move:
+Bb5
+
+r n     k   n r 
+      q   p p p 
+  P   b         
+p B             
+P           b   
+  R     B N     
+  P       P P P 
+  N   Q K     R 
+
+Black's move:
+31417
+
+r       k   n r 
+      q   p p p 
+  P n b         
+p B             
+P           b   
+  R     B N     
+  P       P P P 
+  N   Q K     R 
+
+White's move:
+Rd3
+
+r       k   n r 
+      q   p p p 
+  P n b         
+p B             
+P           b   
+      R B N     
+  P       P P P 
+  N   Q K     R 
+
+Black's move:
+30046
+
+r       k   n r 
+      q   p p p 
+  P n b         
+p B             
+P               
+      R B b     
+  P       P P P 
+  N   Q K     R 
+
+White's move:
+gxf3
+
+r       k   n r 
+      q   p p p 
+  P n b         
+p B             
+P               
+      R B P     
+  P       P   P 
+  N   Q K     R 
+
+Black's move:
+30315
+
+r       k   n r 
+      q   p p p 
+  P n           
+p B             
+P b             
+      R B P     
+  P       P   P 
+  N   Q K     R 
+
+White's move:
+Kf1
+
+r       k   n r 
+      q   p p p 
+  P n           
+p B             
+P b             
+      R B P     
+  P       P   P 
+  N   Q   K   R 
+
+Black's move:
+30195
+
+r       k   n r 
+          p p p 
+  P n           
+p B             
+P b             
+      R B P   q 
+  P       P   P 
+  N   Q   K   R 
+
+White's move:
+Kg1
+invalid move.
+
