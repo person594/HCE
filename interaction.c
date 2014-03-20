@@ -1,79 +1,100 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "defs.h"
 
 //returns -1 on bad syntax, -2 on an illegal move, and -3 on an ambiguous move
 int fromAlg(Board board, char* str) {
-		int n, sd, p, prom, capture = 0, move = -2, square;
-		char start = 0, rank, row, ch;
+		int n, sd, p, prom, move = -2, square;
+		char rank0 = 0, row0 = 0, rank, row, ch;
 		
 		sd = (board.ply%2) * 6;
-		
-		//Get the piece being moved
-		p = WP + sd;
-		prom = WQ + sd;		//default to queen promotion
-		switch (*str) {
-			case  'N':
-				p = WN + sd;
-				str++;
-				break;
-			case 'B':
-				p = WB + sd;
-				str++;
-				break;
-			case 'R':
-				p = WR + sd;
-				str++;
-				break;
-			case 'Q':
-				p = WQ + sd;
-				str++;
-				break;
-			case 'K':
-				p = WK + sd;
-				str++;
-				break;
-			case 0:
-				return -1;
-		}
-		// if there is another character before rank and row, i.e. a starting rank or row, or an x for capture.
-		if (!(str[1] >= '1' && str[1] <= '8')) {
-			if ((*str >= '1' && *str <= '8') || (*str >= 'a' && *str <= 'h')){
-				start = *str++;
+		if (strstr(str, "O-O") == str) {	//str starts with O-O, some kind of castling
+			str +=3;
+			p = WK + sd;
+			rank = '1' + (board.ply%2)*7;
+			if (strstr(str, "-O")) {				//O-O-O, queenside
+				str += 2;
+				row = 'c';
+			} else {
+				row = 'g';
 			}
-			if (*str == 'x'){
-				capture = 1;
-				++str;
+		} else {													//not castling, normal move parsing.
+			//Get the piece being moved
+			p = WP + sd;
+			prom = WQ + sd;		//default to queen promotion
+			switch (*str) {
+				case  'N':
+					p = WN + sd;
+					str++;
+					break;
+				case 'B':
+					p = WB + sd;
+					str++;
+					break;
+				case 'R':
+					p = WR + sd;
+					str++;
+					break;
+				case 'Q':
+					p = WQ + sd;
+					str++;
+					break;
+				case 'K':
+					p = WK + sd;
+					str++;
+					break;
+				case 0:
+					return -1;
 			}
-		}
-		if (!(*str >= 'a' && *str <= 'h')) {
-			return -1;
-		}
-		row = *str++;
-		if (!(*str >= '1' && *str <= '8')) {
-			return -1;
-		}
-		rank = *str++;
-		if (*str) {
-			if (p == WP | p == BP) {
-				switch (ch = *str) {
-					case 'N':
-						prom = WN + sd;
-						break;
-					case 'B':
-						prom = WB + sd;
-						break;
-					case 'R':
-						prom = WR + sd;
-						break;
-					case 'Q':
-						prom = WQ + sd;
-						break;
-					default:
-						return -1;
+			// if there is another character before rank and row, i.e. a starting rank and/or row, or an x for capture.
+			//if (!(str[1] >= '1' && str[1] <= '8')) {
+			if (strlen(str) > 2 && strpbrk(str+2, "abcdefgh12345678")) {
+				if (*str >= 'a' && *str <= 'h'){
+					row0 = *str++;
+				}
+				if (*str >= '1' && *str <= '8') {
+					rank0 = *str++;
+				}
+				if (*str == 'x'){
+					++str;
 				}
 			}
-			else {
+			if (!(*str >= 'a' && *str <= 'h')) {
+				return -1;
+			}
+			row = *str++;
+			if (!(*str >= '1' && *str <= '8')) {
+				return -1;
+			}
+			rank = *str++;
+			if (*str == '=') {
+				if (p == WP | p == BP) {
+					str++;
+					switch (ch = *str) {
+						case 'N':
+							prom = WN + sd;
+							break;
+						case 'B':
+							prom = WB + sd;
+							break;
+						case 'R':
+							prom = WR + sd;
+							break;
+						case 'Q':
+							prom = WQ + sd;
+							break;
+						default:
+							return -1;
+					}
+				}
+				else {
+					return -1;
+				}
+			}
+		}
+		while (ch = *str++) {
+			if (!(ch == '+' || ch == '#' || ch == '!' || ch == '?')){
 				return -1;
 			}
 		}
@@ -83,15 +104,13 @@ int fromAlg(Board board, char* str) {
 		
 		for (n = 0; n < 10 && board.pieces[p][n] != NO_SQUARE; ++n) {
 			if (pieceMoves(board, p, n) & BIT(square)) {
-				if (start) {
-					if (start >= '1' && start <= '8') {
-						if (board.pieces[p][n]/8 != start - '1') {
+				if (rank0) {
+					if (board.pieces[p][n]/8 != rank0 - '1') {
+						continue;
+					}
+				} if (row0) {
+						if (board.pieces[p][n]%8 != row0 - 'a') {
 							continue;
-						}
-					} else {
-						if (board.pieces[p][n]%8 != start - 'a') {
-							continue;
-						}
 					}
 				}
 				if (move == -2) {
@@ -115,10 +134,20 @@ int fromAlg(Board board, char* str) {
 
 
 void toAlg(Board board, int move, char* str) {
-	int to, from, prom, p, n, flag;
+	int to, from, prom, p, n, flag, sd;
+	sd = 6*(board.ply%2);
 	to = TO(move);
 	from = FROM(move);
 	prom = PROM(move);
+	if (board.pieces[WK+sd][0] == from) {		//if the moving piece is a king, possible castling notation
+		if (to - from == 2) {
+			strcpy(str, "O-O");
+			return;
+		} if (from - to == 2) {
+			strcpy(str, "O-O-O");
+			return;
+		}
+	}
 	for (p = WP; p <= BK && !(board.bits[p] & BIT(from)); p++);
 	switch (p) {
 		case WN:
