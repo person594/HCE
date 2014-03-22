@@ -152,3 +152,6 @@ int getGameStatus(Board);
 int getMoves(Board, int*);
 int moveSearch(Board, int, int*);
 
+int fromAlg(Board, char*);
+void toAlg(Board, int, char*);
+char getSymbol(int);

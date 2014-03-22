@@ -94,7 +94,7 @@ void twoPlayerLoop(Board board) {
 
 void onePlayerLoop(Board board) {
 	int move, score, status = 0;		//0: game on, 1: white wins, 2: black wins, -1: stalemate
-	while (!status){
+	while (status!=1 && status != 2 && status != -1){
 		char input[21];
 		printf("\n");
 		printBoard(board);
@@ -106,25 +106,7 @@ void onePlayerLoop(Board board) {
 			printf("%s\n", input);
 		} else {
 			printf("White's move:\n");
-			scanf("%20s", input);
-			if (!strcmp(input, "quit")) {
-				exit(0);
-			}
-			while ((move = fromAlg(board, input)) < 0){
-				switch (move) {
-					case -1:
-					case -2:
-						printf("invalid move.\n");
-						break;
-					case -3:
-						printf("ambiguous move.\n");
-						break;
-					default:
-						printf("%d\n", move);
-						break;
-				}
-				scanf("%20s", input);
-			}
+			move = getInputMove(board);
 		}
 		makeMove(&board, move);
 		validateBoardState(board);
@@ -153,7 +135,7 @@ void pollDebugMove(Board board){
 		scanf(" %c%c", &c0, &c1);
 		p0 = getPos(c0, c1);
 	} while (p0 == NO_SQUARE);
-	printf("attacked?: %d\n", posAttacked(board, p0, BLACK));	
+	printf("attacked?: %d\n", sqAttacked(board, p0, BLACK));	
 	do {
 		printf("destination position: ");
 		scanf(" %c%c", &c0, &c1);

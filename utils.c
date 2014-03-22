@@ -22,50 +22,10 @@ void printBoard(Board board){
 		chars[n] = ' ';
 	}
 	for (p = 0; p < 12; p++) {
-		for (n = 0; n <  10; n++) {
-			int pos = board.pieces[p][n];
-			if (pos == NO_SQUARE){
-				break;
-			}
-			switch (p){
-				case WP:
-					chars[pos] = 'P';
-					break;
-				case WN:
-					chars[pos] = 'N';
-					break;
-				case WB:
-					chars[pos] = 'B';
-					break;
-				case WR:
-					chars[pos] = 'R';
-					break;
-				case WQ:
-					chars[pos] = 'Q';
-					break;
-				case WK:
-					chars[pos] = 'K';
-					break;
-					
-				case BP:
-					chars[pos] = 'p';
-					break;
-				case BN:
-					chars[pos] = 'n';
-					break;
-				case BB:
-					chars[pos] = 'b';
-					break;
-				case BR:
-					chars[pos] = 'r';
-					break;
-				case BQ:
-					chars[pos] = 'q';
-					break;
-				case BK:
-					chars[pos] = 'k';
-					break;
-			}
+		int pos;
+		bitboard b = board.bits[p];
+		while ((pos = popBit(&b)) != NO_SQUARE) {
+			chars[pos] = getSymbol(p);
 		}
 	}
 	/* en passant square
@@ -356,60 +316,58 @@ int orthslide(bitboard occupied, int p0, int p1) {
 /*
 checks if side is attacking pos on the board.
 */
-int posAttacked(Board board, int pos, int side) {
+int sqAttacked(Board board, int sq, int side) {
 	int sd, i;
 	sd = (side == WHITE) ? 0 : 6;
 	
 	for (i = 0; i < 6; i++) {
-		int n, p;
+		int n, p, sq0;
+		bitboard b;
 		p = sd + i;
-		for (n = 0; n < 10; n++) {
-			int po = board.pieces[p][n];
-			if (po == NO_SQUARE){
-				break;
-			}
+		b = board.bits[p];
+		while ((sq0 = popBit(&b)) != NO_SQUARE) {
 			/*
 			switch over each piece type and check if it is threatening the given square.
 			we need not check the piece's color, as we are only looping over p values of the proper color.
 			*/
 			switch (p) {
 				case WP:
-					if (side == WHITE && RANKDIF(pos, po) == 1 && (ROWDIF(pos, po) == 1 || ROWDIF(pos, po) == -1)){
+					if (side == WHITE && RANKDIF(sq, sq0) == 1 && (ROWDIF(sq, sq0) == 1 || ROWDIF(sq, sq0) == -1)){
 						return 1;
 					}
 					break;
 				case BP:
-					if (side == BLACK && RANKDIF(pos, po) == -1 && (ROWDIF(pos, po) == 1 || ROWDIF(pos, po) == -1)){
+					if (side == BLACK && RANKDIF(sq, sq0) == -1 && (ROWDIF(sq, sq0) == 1 || ROWDIF(sq, sq0) == -1)){
 						return 1;
 					}
 					break;
 				case WN:
 				case BN:
-					if ((ABS(RANKDIF(pos, po)) == 2 && ABS(ROWDIF(pos, po)) == 1) || (ABS(RANKDIF(pos, po)) == 1 && ABS(ROWDIF(pos, po)) == 2)){
+					if ((ABS(RANKDIF(sq, sq0)) == 2 && ABS(ROWDIF(sq, sq0)) == 1) || (ABS(RANKDIF(sq, sq0)) == 1 && ABS(ROWDIF(sq, sq0)) == 2)){
 						return 1;
 					}
 					break;
 				case WB:
 				case BB:
-					if (diagslide(board.bits[OCCUPIED], po, pos)){
+					if (diagslide(board.bits[OCCUPIED], sq0, sq)){
 						return 1;
 					}
 					break;
 				case WR:
 				case BR:
-					if (orthslide(board.bits[OCCUPIED], po, pos)){
+					if (orthslide(board.bits[OCCUPIED], sq0, sq)){
 						return 1;
 					}
 					break;
 				case WQ:
 				case BQ:
-					if (diagslide(board.bits[OCCUPIED], po, pos) || orthslide(board.bits[OCCUPIED], po, pos)){
+					if (diagslide(board.bits[OCCUPIED], sq0, sq) || orthslide(board.bits[OCCUPIED], sq0, sq)){
 						return 1;
 					}
 					break;
 				case WK:
 				case BK:
-					if (ABS(RANKDIF(po, pos)) <= 1 && ABS(ROWDIF(po, pos)) <= 1 && po != pos){
+					if (ABS(RANKDIF(sq0, sq)) <= 1 && ABS(ROWDIF(sq0, sq)) <= 1 && sq0 != sq){
 						return 1;
 					}
 			}
@@ -508,18 +466,18 @@ bitboard pieceMoves(Board board, int p, int n) {
 		case WK:
 		case BK:
 			moves = TRANS(KINGMOVE, ROWDIF(p0,E5), RANKDIF(p0, E5)) & ~friendly;
-			if (p == WK && !posAttacked(board, E1, BLACK)){
-				if ((board.castle & C_WK) && !posAttacked(board, F1, BLACK) && !(occupied & 0x60ull)){
+			if (p == WK && !sqAttacked(board, E1, BLACK)){
+				if ((board.castle & C_WK) && !sqAttacked(board, F1, BLACK) && !(occupied & 0x60ull)){
 					moves |= BIT(G1);
 				}
-				if ((board.castle & C_WQ) && !posAttacked(board, D1, BLACK) && !(occupied & 0x0eull)){
+				if ((board.castle & C_WQ) && !sqAttacked(board, D1, BLACK) && !(occupied & 0x0eull)){
 					moves |= BIT(C1);
 				}
-			} else if (p == BK && !posAttacked(board, E8, WHITE)){
-				if ((board.castle & C_BK) && !posAttacked(board, F8, WHITE) && !(occupied & 0x6000000000000000ull)){
+			} else if (p == BK && !sqAttacked(board, E8, WHITE)){
+				if ((board.castle & C_BK) && !sqAttacked(board, F8, WHITE) && !(occupied & 0x6000000000000000ull)){
 					moves |= BIT(G8);
 				}
-				if ((board.castle & C_BQ) && !posAttacked(board, D8, WHITE) && !(occupied & 0x0e00000000000000ull)){
+				if ((board.castle & C_BQ) && !sqAttacked(board, D8, WHITE) && !(occupied & 0x0e00000000000000ull)){
 					moves |= BIT(C8);
 				}
 			}
@@ -661,46 +619,19 @@ int getPos(char row, char rank){
 	return 8*(rank - '1') + (row - 'a');
 }
 
-int getPiece(char c){
-	switch (c) {
-		case 'P':
-			return WP;
-		case 'N':
-			return WN;
-		case 'B':
-			return WB;
-		case 'R':
-			return WR;
-		case 'Q':
-			return WQ;
-		case 'K':
-			return WK;
-			
-		case 'p':
-			return BP;
-		case 'n':
-			return BN;
-		case 'b':
-			return BB;
-		case 'r':
-			return BR;
-		case 'q':
-			return BQ;
-		case 'k':
-			return BK;
-		default:
-			return EMPTY;
-	}
-}
-
 //0: game in progress
 //1: Checkmate, white wins
 //2: Checkmate, black wins
+//3: white in check
+//4: black in check
 //-1: Stalemate
 int getGameStatus(Board board) {
-	int i, sd, opponent;
+	int i, sd, opponent, status = 0;
 	opponent = BLACK - (board.ply%2);
 	sd = 6*(board.ply%2);
+	if (sqAttacked(board, board.pieces[WK + sd][0], opponent)) {	//no moves, king in check.  checkmate
+		status = 3 +  (board.ply%2);
+	}
 	for (i = WP; i <= WK; i++) {
 		int p, n;
 		p = sd + i;
@@ -713,31 +644,31 @@ int getGameStatus(Board board) {
 				b2 = board;
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
 					makeMove(&b2, MOV(board.pieces[p][n], m, WN + sd));
-					if (!posAttacked(b2, b2.pieces[WK + sd][0], opponent)){
-						return 0;
+					if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+						return status;
 					}
 					
 					b2 = board;
 					makeMove(&b2, MOV(board.pieces[p][n], m, WB + sd));
-					if (!posAttacked(b2, b2.pieces[WK + sd][0], opponent)){
-						return 0;
+					if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+						return status;
 					}
 					
 					b2 = board;
 					makeMove(&b2, MOV(board.pieces[p][n], m, WR + sd));
-					if (!posAttacked(b2, b2.pieces[WK + sd][0], opponent)){
-						return 0;
+					if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+						return status;
 					}
 				}
 				b2 = board;
 				makeMove(&b2, MOV(board.pieces[p][n], m, WQ + sd));
-				if (!posAttacked(b2, b2.pieces[WK + sd][0], opponent)){
-					return 0;
+				if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+					return status;
 				}
 			}
 		}
 	}
-	if (posAttacked(board, board.pieces[WK + sd][0], opponent)) {	//no moves, king in check.  checkmate
+	if (status) {	//no moves, king in check.  checkmate
 		return 2 - (board.ply%2);
 	}
 	return -1;

@@ -6,7 +6,7 @@
 int perftTest(Board board, int depth){
 	int sd, i, sum = 0;
 	sd = (board.ply % 2) * 6;
-	if (posAttacked(board, board.pieces[BK - sd][0], WHITE + (board.ply % 2))){
+	if (sqAttacked(board, board.pieces[BK - sd][0], WHITE + (board.ply % 2))){
 		//printf("-1\n");
 		return 0;
 	}
@@ -74,31 +74,31 @@ int printMoves(Board board){
 				p1 = popBit(&moves);
 				if ((p == WP && p1/8 == 7) || (p == BP && p1/8 == 0))	{	//pawn promotion
 					makeMove(&b2, MOV(p0, p1, WN + sd));
-					if (!posAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
+					if (!sqAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, p0, p1);
 					}
 					
 					b2 = board;
 					makeMove(&b2, MOV(p0, p1, WB + sd));
-					if (!posAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
+					if (!sqAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, p0, p1);
 					}
 					
 					b2 = board;
 					makeMove(&b2, MOV(p0, p1, WR + sd));
-					if (!posAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
+					if (!sqAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, p0, p1);
 					}
 					
 					b2 = board;
 					makeMove(&b2, MOV(p0, p1, WQ + sd));
-					if (!posAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
+					if (!sqAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, p0, p1);
 					}
 				}
 				b2 = board;
 				makeMove(&b2, MOV(p0, p1, 0));
-				if (!posAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
+				if (!sqAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, p0, p1);
 					}
 				//printf("sum = %d\n", sum);

@@ -25,6 +25,7 @@ int perftTest(Board board, int depth){
 			moves = pieceMoves(board, p, n);
 			while (moves){
 				p1 = popBit(&moves);
+				b2 = board;
 				if ((p == WP && p1/8 == 7) || (p == BP && p1/8 == 0))	{	//pawn promotion
 					makeMove(&b2, MOV(p0, p1, WN + sd));
 					//printf("%d: %d-%d\n", p, p0, p1);
@@ -45,7 +46,6 @@ int perftTest(Board board, int depth){
 					//printf("%d: %d-%d\n", p, p0, p1);
 					sum += perftTest(b2, depth - 1);
 				} else {
-					b2 = board;
 					makeMove(&b2, MOV(p0, p1, 0));
 					//printf("%d: %d-%d\n", p, p0, p1);
 					sum += perftTest(b2, depth - 1);

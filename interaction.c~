@@ -124,7 +124,7 @@ int fromAlg(Board board, char* str) {
 		if (move >= 0) {
 			Board b2 = board;
 			makeMove(&b2, move);
-			if (posAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply%2))) {	//puts king in check
+			if (sqAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply%2))) {	//puts king in check
 				return -2;
 			}
 		}
@@ -132,9 +132,23 @@ int fromAlg(Board board, char* str) {
 		return move;
 }
 
+//given the post-move board state, adds either a check (+) or checkmate (#) symbol as applicable, then
+//appends a null terminator.
+void terminateMoveStr(Board board, char* str) {
+	int status = getGameStatus(board);
+	if (status == 1 || status == 2) {
+		*str++ = '#';
+	} else if (status == 3 || status == 4)  {
+		*str++ = '+';
+	}
+	*str = 0;
+}
 
 void toAlg(Board board, int move, char* str) {
 	int to, from, prom, p, n, flag, sd;
+	Board b2;
+	b2 = board;
+	makeMove(&b2, move);
 	sd = 6*(board.ply%2);
 	to = TO(move);
 	from = FROM(move);
@@ -142,9 +156,11 @@ void toAlg(Board board, int move, char* str) {
 	if (board.pieces[WK+sd][0] == from) {		//if the moving piece is a king, possible castling notation
 		if (to - from == 2) {
 			strcpy(str, "O-O");
+			terminateMoveStr(b2, str + 3);
 			return;
 		} if (from - to == 2) {
 			strcpy(str, "O-O-O");
+			terminateMoveStr(b2, str + 5);
 			return;
 		}
 	}
@@ -223,6 +239,108 @@ void toAlg(Board board, int move, char* str) {
 				break;
 		}
 	}
-	*str = 0;
+	terminateMoveStr(b2, str);
 }
 
+char getSymbol(int p) {
+	switch (p){
+		case WP:
+			return 'P';
+		case WN:
+			return 'N';
+		case WB:
+			return 'B';
+		case WR:
+			return 'R';
+		case WQ:
+			return 'Q';
+		case WK:
+			return 'K';
+		
+		case BP:
+			return 'p';
+		case BN:
+			return 'n';
+		case BB:
+			return 'b';
+		case BR:
+			return 'r';
+		case BQ:
+			return 'q';
+		case BK:
+			return 'k';
+		default:
+			return ' ';
+	}
+}
+
+int getPiece(char c){
+	switch (c) {
+		case 'P':
+			return WP;
+		case 'N':
+			return WN;
+		case 'B':
+			return WB;
+		case 'R':
+			return WR;
+		case 'Q':
+			return WQ;
+		case 'K':
+			return WK;
+			
+		case 'p':
+			return BP;
+		case 'n':
+			return BN;
+		case 'b':
+			return BB;
+		case 'r':
+			return BR;
+		case 'q':
+			return BQ;
+		case 'k':
+			return BK;
+		default:
+			return EMPTY;
+	}
+}
+
+//polls player for a move, and returns the resulting move.  Also accepts and responds to non-move commands and input, but only returns upon receiving a valid move.
+int getInputMove(Board board) {
+	#define MAXTOKENS 3
+	while(1) {
+		char str[21];
+		char* tokens[MAXTOKENS];
+		char* l;
+		int numTokens;
+		fgets(str, 21, stdin);
+		if (!(tokens[0] = strtok(str, " \t\v\n\r\f"))) {		//no tokens on the line
+			continue;
+		}
+		for (numTokens = 1; numTokens < MAXTOKENS && (tokens[numTokens] = strtok(0, " \t\v\n\r\f")); numTokens++);
+		if (!strcmp(tokens[0], "exit")) {
+			exit(0);
+		}
+		if (!strcmp(tokens[0], "perft")) {
+			int n;
+			if (numTokens == 2 && (n = strtol(tokens[1], 0, 10))) {		//intentional assignment in conditional
+				printf("%d\n", perftTest(board, n));
+				continue;
+			}
+		}
+		if (numTokens == 1) {
+			int move;
+			move = fromAlg(board, tokens[0]);
+			if (move >= 0) {
+				return move;
+			}
+			if (move == -3) {
+				printf("ambiguous move.\n");
+				continue;
+			}
+		}
+		printf("invalid move / command: %s.\n", tokens[0]);
+	}
+	#undef MAXTOKENS
+}

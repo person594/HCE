@@ -129,7 +129,7 @@ void printBoard(Board);
 void initBoard(Board*);
 void clearPos(Board*, int);
 void makeMove(Board*, move);
-int posAttacked(Board, int, int);
+int sqAttacked(Board, int, int);
 
 int popBit(bitboard*);
 int countBits(bitboard); 
@@ -154,3 +154,4 @@ int moveSearch(Board, int, int*);
 
 int fromAlg(Board, char*);
 void toAlg(Board, int, char*);
+char getSymbol(int);
