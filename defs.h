@@ -80,7 +80,7 @@ typedef struct s_board{
   
   int score; //white score - black score.
   
-  int pieces[12][10];
+  //int pieces[12][10];
 } Board;
 
 
@@ -138,7 +138,6 @@ int diagslide(bitboard, int, int);
 int orthslide(bitboard, int, int);
 
 int validateBoardState(Board board);
-void pollDebugMove(Board);
 int getPiece(char);
 int getPos(char, char);
 bitboard pieceMoves(Board, int, int);

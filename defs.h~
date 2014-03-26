@@ -129,7 +129,7 @@ void printBoard(Board);
 void initBoard(Board*);
 void clearPos(Board*, int);
 void makeMove(Board*, move);
-int posAttacked(Board, int, int);
+int sqAttacked(Board, int, int);
 
 int popBit(bitboard*);
 int countBits(bitboard); 
@@ -138,7 +138,6 @@ int diagslide(bitboard, int, int);
 int orthslide(bitboard, int, int);
 
 int validateBoardState(Board board);
-void pollDebugMove(Board);
 int getPiece(char);
 int getPos(char, char);
 bitboard pieceMoves(Board, int, int);

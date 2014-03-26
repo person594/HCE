@@ -106,25 +106,7 @@ void onePlayerLoop(Board board) {
 			printf("%s\n", input);
 		} else {
 			printf("White's move:\n");
-			scanf("%20s", input);
-			if (!strcmp(input, "quit")) {
-				exit(0);
-			}
-			while ((move = fromAlg(board, input)) < 0){
-				switch (move) {
-					case -1:
-					case -2:
-						printf("invalid move.\n");
-						break;
-					case -3:
-						printf("ambiguous move.\n");
-						break;
-					default:
-						printf("%d\n", move);
-						break;
-				}
-				scanf("%20s", input);
-			}
+			move = getInputMove(board);
 		}
 		makeMove(&board, move);
 		validateBoardState(board);

@@ -5,8 +5,9 @@
 
 //returns -1 on bad syntax, -2 on an illegal move, and -3 on an ambiguous move
 int fromAlg(Board board, char* str) {
-		int n, sd, p, prom, move = -2, square;
+		int sd, p, prom, move = -2, sq0, sq1;
 		char rank0 = 0, row0 = 0, rank, row, ch;
+		bitboard b;
 		
 		sd = (board.ply%2) * 6;
 		if (strstr(str, "O-O") == str) {	//str starts with O-O, some kind of castling
@@ -99,22 +100,22 @@ int fromAlg(Board board, char* str) {
 			}
 		}
 		
-		square = 8*(rank - '1') + (row - 'a');
+		sq1 = 8*(rank - '1') + (row - 'a');
 		
-		
-		for (n = 0; n < 10 && board.pieces[p][n] != NO_SQUARE; ++n) {
-			if (pieceMoves(board, p, n) & BIT(square)) {
+		b = board.bits[p];
+		while ((sq0 = popBit(&b)) != NO_SQUARE) {					//check all pieces of type p
+			if (pieceMoves(board, p, sq0) & BIT(sq1)) {			//if the current piece can move to the target square
 				if (rank0) {
-					if (board.pieces[p][n]/8 != rank0 - '1') {
+					if (sq0/8 != rank0 - '1') {
 						continue;
 					}
 				} if (row0) {
-						if (board.pieces[p][n]%8 != row0 - 'a') {
+						if (sq0%8 != row0 - 'a') {
 							continue;
 					}
 				}
 				if (move == -2) {
-					move = MOV(board.pieces[p][n], square, prom);
+					move = MOV(sq0, sq1, prom);
 				} else {
 					return -3;
 				}
@@ -124,7 +125,7 @@ int fromAlg(Board board, char* str) {
 		if (move >= 0) {
 			Board b2 = board;
 			makeMove(&b2, move);
-			if (sqAttacked(b2, b2.pieces[WK + sd][0], WHITE + (b2.ply%2))) {	//puts king in check
+			if (sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply%2))) {	//puts king in check
 				return -2;
 			}
 		}
@@ -145,7 +146,8 @@ void terminateMoveStr(Board board, char* str) {
 }
 
 void toAlg(Board board, int move, char* str) {
-	int to, from, prom, p, n, flag, sd;
+	int to, from, prom, p, sq0, flag, sd;
+	bitboard b;
 	Board b2;
 	b2 = board;
 	makeMove(&b2, move);
@@ -153,7 +155,7 @@ void toAlg(Board board, int move, char* str) {
 	to = TO(move);
 	from = FROM(move);
 	prom = PROM(move);
-	if (board.pieces[WK+sd][0] == from) {		//if the moving piece is a king, possible castling notation
+	if (from == bsf(board.bits[WK + sd])) {		//if the moving piece is a king, possible castling notation
 		if (to - from == 2) {
 			strcpy(str, "O-O");
 			terminateMoveStr(b2, str + 3);
@@ -192,12 +194,13 @@ void toAlg(Board board, int move, char* str) {
 			*str++ = 'a' + (from % 8);
 		}
 	} else {
-		flag = 0;	//whether two pieces can move to the same square
-		for (n = 0; n < 10 && board.pieces[p][n] != NO_SQUARE; n++) {	//for each of the piece being moves
-			if ((pieceMoves(board, p, n) & BIT(to)) && board.pieces[p][n] != from) {
-				if (board.pieces[p][n] % 8 == from) {
+		flag = 0;	//whether two pieces can move to the same square.  1: shared row, 2: shared rank
+		b = board.bits[p];
+		while ((sq0 = popBit(&b)) != NO_SQUARE) {	//for each piece of the piece type being moved
+			if ((pieceMoves(board, p, sq0) & BIT(to)) && sq0 != from) {
+				if (sq0 % 8 == from) {
 					flag |= 2;
-				} else {
+				} if (sq0 / 8 == from) {
 					flag |= 1;
 				}
 			}

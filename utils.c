@@ -62,11 +62,6 @@ void clearBoard(Board* board) {
 	board->castle  = C_WK | C_WQ | C_BK | C_BQ;
 	
 	board->score = 0;
-	for (p = WP; p <= BK; p++) {
-		for (n = 0; n < 10; n++) {
-			board->pieces[p][n] = NO_SQUARE;
-		}
-	}
 }
 
 void initBoard(Board* board){
@@ -94,33 +89,6 @@ void initBoard(Board* board){
 	board->bits[BLACK] = R_7 | R_8;
 	board->bits[OCCUPIED] = (board->bits[WHITE]) | (board->bits[BLACK]);
 	board->bits[EMPTY] = ~(board->bits[OCCUPIED]);
-	for (p = 0; p < 12;  p++) {
-		for (n = 0; n < 12; n++){
-			board->pieces[p][n] = NO_SQUARE;
-		}
-	}
-	for (n = 0; n < 8; n++) {
-		board->pieces[WP][n] = 8 + n;
-		board->pieces[BP][n] = 48 + n;
-	}
-	board->pieces[WN][0] = 1;
-	board->pieces[WN][1] = 6;
-	board->pieces[WB][0] = 2;
-	board->pieces[WB][1] = 5;
-	board->pieces[WR][0] = 0;
-	board->pieces[WR][1] = 7;
-	board->pieces[WQ][0] = 3;
-	board->pieces[WK][0] = 4;
-	
-	board->pieces[BN][0] = 57;
-	board->pieces[BN][1] = 62;
-	board->pieces[BB][0] = 58;
-	board->pieces[BB][1] = 61;
-	board->pieces[BR][0] = 56;
-	board->pieces[BR][1] = 63;
-	board->pieces[BQ][0] = 59;
-	board->pieces[BK][0] = 60;
-	
 	board->score = 0;
 }
 
@@ -147,7 +115,6 @@ genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock
 		board->bits[p] |= BIT(r*8 + c);
 		board->bits[OCCUPIED] |= BIT(r*8 + c);
 		board->bits[WHITE + ISBLACK[p]] |= BIT(r*8 + c);
-		board->pieces[p][piecenum[p]] = r*8+c;
 		board->score += VAL[p];
 		piecenum[p]++;
 	}
@@ -163,17 +130,6 @@ void clearPos(Board* board, int pos){
 			board->bits[i] &= ~b;
 			if (i <= BK){							//if we are on a specific piece's bitboard
 				board->score -= VAL[i];		//adjust the score
-				int n, r;
-				for (n = 0; n < 10; n++) {						//find and remove the piece there from our piece array.
-					if (board->pieces[i][n] == pos){
-						r = n;
-					}
-					if (board->pieces[i][n] == NO_SQUARE){
-						board->pieces[i][r] = board->pieces[i][n-1];
-						board->pieces[i][n-1] = NO_SQUARE;
-						break;
-					}
-				}
 				i = BK;															//skip over the rest of the pieces
 			}
 		}
@@ -214,12 +170,6 @@ void makeMove(Board* board, move mov) {
 			
 			if (i <= BK) {	//if we are working on an individual piece's bitboard
 				int n, enpas = NO_SQUARE;
-				for (n = 0; n < 10; n++) {					//now update the individual piece's position index.
-					if (board->pieces[i][n] == p0){
-						board->pieces[i][n] = p1;
-						break;
-					}
-				}
 				//special conditions for special pieces
 				if (i == WP){
 					if (p1 - p0 == 16){		//double ahead, set enpassant
@@ -231,8 +181,6 @@ void makeMove(Board* board, move mov) {
 						board->bits[prom] |= b1;		//add specific piece's bitboard
 						board->bits[WHITE] |= b1;		//update general bitboards.  remember the empty bitboard is updated at the very end.
 						board->bits[OCCUPIED] |= b1;
-						for (n = 0; board->pieces[prom][n] != NO_SQUARE; n++);		//update piece list
-						board->pieces[prom][n] = p1;
 						board->score += VAL[prom];
 					}
 				} else if (i == BP){
@@ -245,8 +193,6 @@ void makeMove(Board* board, move mov) {
 						board->bits[prom] |= b1;		//add specific piece's bitboard
 						board->bits[BLACK] |= b1;		//update general bitboards.  remember the empty bitboard is updated at the very end.
 						board->bits[OCCUPIED] |= b1;
-						for (n = 0; board->pieces[prom][n] != NO_SQUARE; n++);		//update piece list
-						board->pieces[prom][n] = p1;
 						board->score += VAL[prom];
 					}
 				} else if (i == WK || i == BK){
@@ -379,11 +325,10 @@ int sqAttacked(Board board, int sq, int side) {
 /*
 	warning:  only generates pseudo-legal moves.  some might be non legal
 */
-bitboard pieceMoves(Board board, int p, int n) {
-	int p0, player, i;
+bitboard pieceMoves(Board board, int p, int sq) {
+	int player, i;
 	bitboard b0, b1, b2, occupied, empty, friendly, enemy, moves = 0ull;
-	p0 = board.pieces[p][n];
-	b0 = BIT(p0);
+	b0 = BIT(sq);
 	player = ISBLACK[p];
 	occupied = board.bits[OCCUPIED];
 	empty = board.bits[EMPTY];
@@ -393,22 +338,22 @@ bitboard pieceMoves(Board board, int p, int n) {
 		case BP:
 			enemy |= BIT(board.enpas);
 			moves = (b0>>8) & empty;
-			if (moves && p0/8 == 6){
+			if (moves && sq/8 == 6){
 				moves |= (b0>>16 & empty);
 			}
-			moves |= (b0>>7 | b0>>9) & (enemy ) & RANK(p0-8);
+			moves |= (b0>>7 | b0>>9) & (enemy ) & RANK(sq-8);
 			return moves;
 		case WP:
 			enemy |= BIT(board.enpas);
 			moves = (b0<<8) & empty;
-			if (moves && p0/8 == 1){
+			if (moves && sq/8 == 1){
 				moves |= (b0<<16 & empty);
 			}
-			moves |= (b0<<7 | b0<<9) & (enemy ) & RANK(p0+8);
+			moves |= (b0<<7 | b0<<9) & (enemy ) & RANK(sq+8);
 			return moves;
 		case WN:
 		case BN:
-			moves = TRANS(KNIGHTMOVE, ROWDIF(p0,E5), RANKDIF(p0, E5)) & ~friendly;
+			moves = TRANS(KNIGHTMOVE, ROWDIF(sq,E5), RANKDIF(sq, E5)) & ~friendly;
 			break;
 		case WQ:
 		case BQ:
@@ -416,7 +361,7 @@ bitboard pieceMoves(Board board, int p, int n) {
 		case WB:
 		case BB:
 			//northeast
-			b2 = PDIAG(p0);
+			b2 = PDIAG(sq);
 			b1 = b2 & ~((b0<<1)-1);
 			i = sf(b1&occupied);
 			//moves |= (BIT(i+9) - b0) & b2;
@@ -427,7 +372,7 @@ bitboard pieceMoves(Board board, int p, int n) {
 			//moves |= (b0 - BIT(i)) & b2;
 			moves |= ~(BIT(i)-1) & b1;
 			//southeast
-			b2 = NDIAG(p0);
+			b2 = NDIAG(sq);
 			b1 = b2 & (b0-1);
 			i = sr(b1&occupied);
 			//moves |= (b0 - BIT(i)) & b2;
@@ -444,7 +389,7 @@ bitboard pieceMoves(Board board, int p, int n) {
 		case WR:
 		case BR:
 			//east
-			b2 = RANK(p0);
+			b2 = RANK(sq);
 			b1 = b2 & ~((b0<<1)-1);
 			i = sf(b1&occupied);
 			moves |= (BIT(i+1) - 1) & b1;
@@ -453,7 +398,7 @@ bitboard pieceMoves(Board board, int p, int n) {
 			i = sr(b1&occupied);
 			moves |= ~(BIT(i) - 1) & b1;
 			//north
-			b2 = ROW(p0);
+			b2 = ROW(sq);
 			b1 = b2 & ~((b0<<1)-1);
 			i = sf(b1&occupied);
 			moves |= (BIT(i+1) - 1) & b1;	
@@ -465,7 +410,7 @@ bitboard pieceMoves(Board board, int p, int n) {
 			break;
 		case WK:
 		case BK:
-			moves = TRANS(KINGMOVE, ROWDIF(p0,E5), RANKDIF(p0, E5)) & ~friendly;
+			moves = TRANS(KINGMOVE, ROWDIF(sq,E5), RANKDIF(sq, E5)) & ~friendly;
 			if (p == WK && !sqAttacked(board, E1, BLACK)){
 				if ((board.castle & C_WK) && !sqAttacked(board, F1, BLACK) && !(occupied & 0x60ull)){
 					moves |= BIT(G1);
@@ -561,46 +506,35 @@ int popBit(bitboard* b){
 int validateBoardState(Board board) {
 	int p, n, score = 0;
 	
-	bitboard bbs[16];		//construct a local version of the bit boards to compare against existing ones
-	for (p = 0; p < 16; p++){
-		bbs[p] = 0;
-	}
+	bitboard occupied = 0, white = 0, black = 0;	
 	
-	//confirm the piece array is left-filled
 	for (p = WP; p <= BK; p++){
-		int f = 0;
-		for (n = 0; n < 10; n++) {
-			int pos = board.pieces[p][n];
-			if (pos == NO_SQUARE){
-				f = 1;
-			} else {
-				if (f){																//check for non-empty positions after the first empty one.
-					printf("Malformed piece array\n");
-					return 0;
-				}
-				if (bbs[OCCUPIED] & BIT(pos)){								//check for two pieces occupying the same position
-					printf("Multiple pieces at position %d\n", pos);
-					return 0;
-				}
-				//add the piece to our local bitboard for that piece, as well as the bitboard for all pieces.  Individual color bitboards calculated later.
-				bbs[p] |= BIT(pos);
-				bbs[OCCUPIED] |= BIT(pos);
-				
-				score += VAL[p];
-				
-			}
-		}
+	if (occupied & board.bits[p]) {
+		printf("Multiple pieces at a single square.\n");
+		return 0;
+	}
+	occupied |= board.bits[p];
+	if (p < BP) {
+		white |= board.bits[p];
+	} else {
+		black |= board.bits[p];
+	}
+	score += VAL[p] * countBits(board.bits[p]);
+		
 	}
 	//generate the rest of our bitboards:
-	bbs[WHITE] = bbs[WP] | bbs[WN] | bbs[WB] | bbs[WR] | bbs[WQ] | bbs[WK];
-	bbs[BLACK] = bbs[BP] | bbs[BN] | bbs[BB] | bbs[BR] | bbs[BQ] | bbs[BK];
-	bbs[EMPTY] = ~bbs[OCCUPIED];
 	
-	for (p = 0; p < 16; p++) {
-		if (bbs[p] != board.bits[p]){
-			printf("Incorrect bitboard for piece %d, expected: %llx, actual: %llx\n", p, bbs[p], board.bits[p]);
-			return 0;
-		}
+	if (white != board.bits[WHITE] || black != board.bits[BLACK] || occupied != board.bits[OCCUPIED] || ~occupied != board.bits[EMPTY]) {
+		printf("Incorrect derived bitboards.\n");
+		printf("white:\n");
+		printBitboard(board.bits[WHITE]);
+		printf("\nblack:\n");
+		printBitboard(board.bits[BLACK]);
+		printf("\noccupied:\n");
+		printBitboard(board.bits[OCCUPIED]);
+		printf("\nempty:\n");
+		printBitboard(board.bits[EMPTY]);
+		return 0;
 	}
 	
 	if (score != board.score) {
@@ -629,40 +563,46 @@ int getGameStatus(Board board) {
 	int i, sd, opponent, status = 0;
 	opponent = BLACK - (board.ply%2);
 	sd = 6*(board.ply%2);
-	if (sqAttacked(board, board.pieces[WK + sd][0], opponent)) {	//no moves, king in check.  checkmate
+	if (sqAttacked(board, bsf(board.bits[WK + sd]), opponent)) {	//no moves, king in check.  checkmate
 		status = 3 +  (board.ply%2);
 	}
 	for (i = WP; i <= WK; i++) {
-		int p, n;
+		int p, n, sq;
+		bitboard b;
 		p = sd + i;
-		for (n = 0; n < 10 && board.pieces[p][n] != NO_SQUARE; n++){
+		b = board.bits[p];
+		while ((sq = popBit(&b)) != NO_SQUARE){
 			bitboard moves;
 			int m, move;
-			moves = pieceMoves(board, p, n);
+			moves = pieceMoves(board, p, sq);
 			while ((m = popBit(&moves)) != NO_SQUARE) {
 				Board b2;
+				int kingSq;
 				b2 = board;
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
-					makeMove(&b2, MOV(board.pieces[p][n], m, WN + sd));
-					if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+					//king square can be obtained from the old board, as it won't change from a pawn move
+					kingSq = bsf(board.bits[WK + sd]);
+					makeMove(&b2, MOV(sq, m, WN + sd));
+					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(board.pieces[p][n], m, WB + sd));
-					if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+					makeMove(&b2, MOV(sq, m, WB + sd));
+					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(board.pieces[p][n], m, WR + sd));
-					if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+					makeMove(&b2, MOV(sq, m, WR + sd));
+					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 				}
 				b2 = board;
-				makeMove(&b2, MOV(board.pieces[p][n], m, WQ + sd));
-				if (!sqAttacked(b2, b2.pieces[WK + sd][0], opponent)){
+				makeMove(&b2, MOV(sq, m, WQ + sd));
+				kingSq = bsf(b2.bits[WK + sd]);
+				if (!sqAttacked(b2, kingSq, opponent)){
 					return status;
 				}
 			}
@@ -679,19 +619,21 @@ int getMoves(Board board, int* moves) {
 	int i, n, sd, count = 0;
 	sd = 6*(board.ply%2);
 	for (i = WK; i >= WP; i--) {
-		int p, n;
+		int p, sq;
+		bitboard b;
 		p = sd + i;
-		for (n = 0; n < 10 && board.pieces[p][n] != NO_SQUARE; n++) {
+		b = board.bits[p];
+		while ((sq = popBit(&b)) != NO_SQUARE) {
 			int m;
-			bitboard movebits = pieceMoves(board, p, n);
+			bitboard movebits = pieceMoves(board, p, sq);
 			while ((m = popBit(&movebits)) != NO_SQUARE) {
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
-					*moves++ = MOV(board.pieces[p][n], m, WN + sd);
-					*moves++ = MOV(board.pieces[p][n], m, WB + sd);
-					*moves++ = MOV(board.pieces[p][n], m, WR + sd);
+					*moves++ = MOV(sq, m, WN + sd);
+					*moves++ = MOV(sq, m, WB + sd);
+					*moves++ = MOV(sq, m, WR + sd);
 					count += 3;
 				}
-				*moves++ = MOV(board.pieces[p][n], m, WN + sd);
+				*moves++ = MOV(sq, m, WN + sd);
 				count++;
 			}
 		}
@@ -776,7 +718,7 @@ inline int eval(Board board) {
 int alphaBetaMax(Board board, int alpha, int beta, int depthleft ) {
 	int numMoves, moves[120], i;
 
-	if (depthleft <= 0 || board.pieces[WK][0] == NO_SQUARE || board.pieces[BK][0] == NO_SQUARE) {
+	if (depthleft <= 0 || !board.bits[WK] || !board.bits[BK]) {
 		return eval(board);
 	}
 	numMoves = getMoves(board, moves);
@@ -798,7 +740,7 @@ int alphaBetaMax(Board board, int alpha, int beta, int depthleft ) {
 int alphaBetaMin(Board board, int alpha, int beta, int depthleft ) {
 	int numMoves, moves[120], i;
 	
-	if (depthleft <= 0 || board.pieces[WK][0] == NO_SQUARE || board.pieces[BK][0] == NO_SQUARE) {
+	if (depthleft <= 0 || !board.bits[WK] || !board.bits[BK]) {
 		return eval(board);
 	}
 	numMoves = getMoves(board, moves);
