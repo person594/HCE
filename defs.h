@@ -69,6 +69,7 @@ typedef unsigned long long int bitboard;
 enum {WP, WN, WB, WR, WQ, WK, BP, BN, BB, BR, BQ, BK, WHITE, BLACK, OCCUPIED, EMPTY};
 extern int VAL[];
 extern int ISBLACK[];
+extern int COLOR[];
 extern bitboard PDIAGS[15];
 extern bitboard NDIAGS[15];
 
@@ -77,10 +78,8 @@ typedef struct s_board{
   int ply;
   int enpas;
   int castle;
-  
   int score; //white score - black score.
-  
-  //int pieces[12][10];
+  int squares[64];
 } Board;
 
 

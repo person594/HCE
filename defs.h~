@@ -77,10 +77,8 @@ typedef struct s_board{
   int ply;
   int enpas;
   int castle;
-  
   int score; //white score - black score.
-  
-  int pieces[12][10];
+  int squares[64];
 } Board;
 
 

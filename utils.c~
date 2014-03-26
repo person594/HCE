@@ -56,6 +56,9 @@ void clearBoard(Board* board) {
 	for (n = 0; n < 15; n++){
 		board->bits[n] = 0ull;
 	}
+	for (n = 0; n < 64; n++) {
+		board->squares[n] = EMPTY;
+	}
 	board->bits[EMPTY] = ~board->bits[OCCUPIED];
 	board->ply = 0;
 	board->enpas = NO_SQUARE;
@@ -89,11 +92,45 @@ void initBoard(Board* board){
 	board->bits[BLACK] = R_7 | R_8;
 	board->bits[OCCUPIED] = (board->bits[WHITE]) | (board->bits[BLACK]);
 	board->bits[EMPTY] = ~(board->bits[OCCUPIED]);
+	
+	for (n = 0; n < 64; n++) {
+		if (n/8 == 0 || n/8 == 7) {
+			switch (n%8) {
+				case 0:
+				case 7:
+					board->squares[n] = WR;
+					break;
+				case 1:
+				case 6:
+					board->squares[n] = WN;
+					break;
+				case 2:
+				case 5:
+					board->squares[n] = WB;
+					break;
+				case 3:
+					board->squares[n] = WQ;
+					break;
+				case 4:
+					board->squares[n] = WK;
+					break;
+			}
+		} else if (n/8 == 1 || n/8 == 6) {
+			board->squares[n] = WP;
+		} else {
+			board->squares[n] = EMPTY;
+		}
+		if (n/8 >= 6) {
+			board->squares[n] += BP;
+		}
+	}
+	
 	board->score = 0;
 }
 
+//generates a board given Forsyth-Edwards Notation
 genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock, int movenum){
-	int i, r = 7, c = 0, piecenum[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	int i, r = 7, c = 0;
 	clearBoard(board);
 	board->ply = 2*(movenum-1) + (active == BLACK);
 	board->enpas = enpas;
@@ -116,106 +153,105 @@ genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock
 		board->bits[OCCUPIED] |= BIT(r*8 + c);
 		board->bits[WHITE + ISBLACK[p]] |= BIT(r*8 + c);
 		board->score += VAL[p];
-		piecenum[p]++;
+		board->squares[r*8 + c] = p;
 	}
 	board->bits[EMPTY] = ~board->bits[OCCUPIED];
 }
 
-void clearPos(Board* board, int pos){
-	int i;
+void clearSq(Board* board, int sq){
+	int p;
 	bitboard b;
-	b = BIT(pos);
-	for (i = 0; i < 15; i++){
-		if (board->bits[i] & b){		//if pos on the bitboard is occupied
-			board->bits[i] &= ~b;
-			if (i <= BK){							//if we are on a specific piece's bitboard
-				board->score -= VAL[i];		//adjust the score
-				i = BK;															//skip over the rest of the pieces
-			}
-		}
-	}
+	b = BIT(sq);
+	p = board->squares[sq];
+	
+	board->bits[p] &= ~b;
+	board->bits[COLOR[p]] &= ~b;
+	board->bits[OCCUPIED] &= ~b;
 	board->bits[EMPTY] |= b;
+	board->score -=VAL[p];
+	board->squares[sq] = EMPTY;
 }
 
 void makeMove(Board* board, move mov) {
 	Board orig = *board;
-	int i, p0, p1, prom;
-	p0 = FROM(mov);
-	p1 = TO(mov);
+	int i, p, sq0, sq1, prom, enpas = NO_SQUARE;
+	sq0 = FROM(mov);
+	sq1 = TO(mov);
 	prom = PROM(mov);
 	bitboard b0, b1;
-	b0 = BIT(p0);
-	b1 = BIT(p1);
-	
-	board->ply++;
-	
+	b0 = BIT(sq0);
+	b1 = BIT(sq1);
+	p = board->squares[sq0];
 	
 	//update castling status from changes to the rooks.  changes to the kings are handled later.
-	if (p0 == A1 || p1 == A1) {
+	if (sq0 == A1 || sq1 == A1) {
 		board->castle &= (~C_WQ);
-	} else if (p0 == H1 || p1 == H1) {
+	} else if (sq0 == H1 || sq1 == H1) {
 		board->castle &= (~C_WK);
-	} else if (p0 == A8 || p1 == A8) {
+	} else if (sq0 == A8 || sq1 == A8) {
 		board->castle &= (~C_BQ);
-	} else if (p0 == H8 || p1 == H8) {
+	} else if (sq0 == H8 || sq1 == H8) {
 		board->castle &= (~C_BK);
 	}
 	
+	clearSq(board, sq1);					//empty the destination square
 	
-	clearPos(board, p1);					//empty the destination square
-	for (i = 0; i < 15; i++) {
-		if (board->bits[i] & b0) {	//if p0 on bitboard is occupied
-			board->bits[i] &= ~b0;
-			board->bits[i] |= b1;
+	//move the piece, updating all aplicable bitboards.
+	board->bits[p] &= ~b0;
+	board->bits[COLOR[p]] &= ~b0;
+	board->bits[OCCUPIED] &= ~b0;
+	board->bits[EMPTY] |= b0;
+	board->squares[sq0] = EMPTY;
+	
+	board->bits[p] |= b1;
+	board->bits[COLOR[p]] |= b1;
+	board->bits[OCCUPIED] |= b1;
+	board->bits[EMPTY] &= ~b1;
+	board->squares[sq1] = p; 
+	
+	switch (p) {	//special logic for special pieces
+		int mask;
+		case WP:
+			if (sq1 - sq0 == 16){		//double ahead, set enpassant
+				enpas = sq0+8;
+			} else if (sq1  == board->enpas){		//enpassant capture
+				clearSq(board, board->enpas - 8);
+			} else if (sq1/8 == 7){	//pawn promotion
+				board->bits[p] &= ~b1;
+				board->bits[prom] |= b1;
+				board->score += VAL[prom] - VAL[p];
+				board->squares[sq1] = prom;
+			}
+			break;
+		case BP:
+			if (sq0 - sq1 == 16){		//double ahead, set enpassant
+				enpas = sq1+8;
+			} else if (sq1  == board->enpas){		//enpassant capture
+				clearSq(board, board->enpas + 8);
+			} else if (sq1/8 == 0){	//pawn promotion
+				board->bits[p] &= ~b1;
+				board->bits[prom] |= b1;
+				board->score += VAL[prom] - VAL[p];
+				board->squares[sq1] = prom;
+			}
+			break;
 			
-			if (i <= BK) {	//if we are working on an individual piece's bitboard
-				int n, enpas = NO_SQUARE;
-				//special conditions for special pieces
-				if (i == WP){
-					if (p1 - p0 == 16){		//double ahead, set enpassant
-						enpas = p0+8;
-					} else if (p1  == board->enpas){		//enpassant capture
-						clearPos(board, board->enpas - 8);
-					} else if (p1/8 == 7){	//pawn promotion
-						clearPos(board, p1);
-						board->bits[prom] |= b1;		//add specific piece's bitboard
-						board->bits[WHITE] |= b1;		//update general bitboards.  remember the empty bitboard is updated at the very end.
-						board->bits[OCCUPIED] |= b1;
-						board->score += VAL[prom];
-					}
-				} else if (i == BP){
-					if (p0 - p1 == 16){		//double ahead, set enpassant
-						enpas = p1+8;
-					} else if (p1 == board->enpas) {		//enpassant capture
-						clearPos(board, board->enpas + 8);
-					} else if (p1/8 == 0){	//pawn promotion
-						clearPos(board, p1);
-						board->bits[prom] |= b1;		//add specific piece's bitboard
-						board->bits[BLACK] |= b1;		//update general bitboards.  remember the empty bitboard is updated at the very end.
-						board->bits[OCCUPIED] |= b1;
-						board->score += VAL[prom];
-					}
-				} else if (i == WK || i == BK){
-					//prevent castling from side who moved their king
-					int mask;
-					mask = (i == WK) ? (C_WK | C_WQ) : (C_BK | C_BQ);
-					board->castle &= (~mask);
-					
-					if (p1 - p0 == 2){	//king side castling
-						makeMove(board, MOV(p1+1, p1-1, 0));
-						board->ply--;
-					} else if (p0 - p1 == 2){  //queen side castling
-						makeMove(board, MOV(p1-2, p1+1, 0));
-						board->ply--;
-					}
-				}
-				board->enpas = enpas;
-				i = BK;				//skip the rest of the individual piece bitboards; only one type of piece per square.
+		case WK:
+		case BK:
+			//prevent castling from side who moved their king
+			mask = (p == WK) ? (C_WK | C_WQ) : (C_BK | C_BQ);
+			board->castle &= (~mask);
+			if (sq1 - sq0 == 2){	//king side castling
+				makeMove(board, MOV(sq1+1, sq1-1, 0));
+				board->ply--;
+			} else if (sq0 - sq1 == 2){  //queen side castling
+				makeMove(board, MOV(sq1-2, sq1+1, 0));
+				board->ply--;
 			}
 			
-		}
 	}
-	board->bits[EMPTY] = ~board->bits[OCCUPIED];
+	board->enpas = enpas;
+	board->ply++;
 }
 
 int diagslide(bitboard occupied, int p0, int p1) {
@@ -260,7 +296,7 @@ int orthslide(bitboard occupied, int p0, int p1) {
 }
 
 /*
-checks if side is attacking pos on the board.
+checks if side is attacking sq on the board.
 */
 int sqAttacked(Board board, int sq, int side) {
 	int sd, i;
@@ -443,7 +479,7 @@ int countBits(bitboard b) {
 /*
 given a bitboard, returns the first occupied position
 */
-int bsf(bitboard b){
+inline int bsf(bitboard b){
 	unsigned long long int v;
 	asm (
 		"bsfq %1, %0\n\t"
@@ -456,7 +492,7 @@ int bsf(bitboard b){
 	return (int) v;
 }
 
-int bsr(bitboard b){
+inline int bsr(bitboard b){
 	unsigned long long int v;
 	asm (
 		"bsrq %1, %0\n\t"
@@ -470,7 +506,7 @@ int bsr(bitboard b){
 }
 
 //like bsf, but returns 63 if a 1 is not found.
-int sf(bitboard b){
+inline int sf(bitboard b){
 	unsigned long long int v = 63;
 	asm (
 		"bsfq %1, %0\n\t"
@@ -484,7 +520,7 @@ int sf(bitboard b){
 }
 
 //like bsr, but returns 0 if a 1 is not found
-int sr(bitboard b){
+inline int sr(bitboard b){
 	unsigned long long int v = 0;
 	asm (
 		"bsrq %1, %0\n\t"
@@ -497,29 +533,35 @@ int sr(bitboard b){
 	return v;
 }
 
-int popBit(bitboard* b){
+inline int popBit(bitboard* b){
 	int p = bsf(*b);
 	*b &= *b - 1;
 	return p;
 }
 
 int validateBoardState(Board board) {
-	int p, n, score = 0;
+	int p, n, squares[64], score = 0;
+	bitboard occupied = 0, white = 0, black = 0;
 	
-	bitboard occupied = 0, white = 0, black = 0;	
+	for (n = 0; n < 64; n++) {
+		squares[n] = EMPTY;
+	}
 	
 	for (p = WP; p <= BK; p++){
-	if (occupied & board.bits[p]) {
-		printf("Multiple pieces at a single square.\n");
-		return 0;
-	}
-	occupied |= board.bits[p];
-	if (p < BP) {
-		white |= board.bits[p];
-	} else {
-		black |= board.bits[p];
-	}
-	score += VAL[p] * countBits(board.bits[p]);
+		if (occupied & board.bits[p]) {
+			printf("Multiple pieces at a single square.\n");
+			return 0;
+		}
+		occupied |= board.bits[p];
+		if (p < BP) {
+			white |= board.bits[p];
+		} else {
+			black |= board.bits[p];
+		}
+		score += VAL[p] * countBits(board.bits[p]);
+		while (board.bits[p]) {
+			squares[popBit(&board.bits[p])] = p;
+		}
 		
 	}
 	//generate the rest of our bitboards:
@@ -527,19 +569,26 @@ int validateBoardState(Board board) {
 	if (white != board.bits[WHITE] || black != board.bits[BLACK] || occupied != board.bits[OCCUPIED] || ~occupied != board.bits[EMPTY]) {
 		printf("Incorrect derived bitboards.\n");
 		printf("white:\n");
-		printbitboard(board.bits[WHITE]);
+		printBitboard(board.bits[WHITE]);
 		printf("\nblack:\n");
-		printbitboard(board.bits[BLACK]);
+		printBitboard(board.bits[BLACK]);
 		printf("\noccupied:\n");
-		printbitboard(board.bits[OCCUPIED]);
+		printBitboard(board.bits[OCCUPIED]);
 		printf("\nempty:\n");
-		printbitboard(board.bits[EMPTY]);
+		printBitboard(board.bits[EMPTY]);
 		return 0;
 	}
 	
 	if (score != board.score) {
 		printf("Incorrect score, expected: %d, actual: %d\n", score, board.score);
 		return 0;
+	}
+	
+	for (n = 0; n < 64; n++) {
+		if (squares[n] != board.squares[n]) {
+			printf("Incorrect piece buffer.");
+			return 0;
+		}
 	}
 	
 	return 1;
@@ -641,40 +690,6 @@ int getMoves(Board board, int* moves) {
 	return count;
 }
 
-int rateMove(Board board, int move, int depth){
-	Board b2;
-	int score, isBlack;
-	if (move < 0) {
-		return -999999999;
-	}
-	isBlack = board.ply%2;
-	b2 = board;
-	makeMove(&b2, move);
-	score = board.score - b2.score;
-	if (score >= VAL[WK]) {
-		//favor faster checkmates.
-		return score * (depth + 1);
-	}
-	if (depth <= 0) {
-		//points for occupying and attacking center:
-		int centerOccupy = 25;
-		score += centerOccupy* countBits(b2.bits[WHITE+isBlack] & CENTER);
-		return score;
-	} else {
-		int numMoves, moves[120], bestScore = -999999, i;
-		numMoves = getMoves(b2, moves);
-		for (i = 0; i < numMoves; i++) {
-			int s;
-			s = rateMove(b2, moves[i], depth - 1);
-			if (s > bestScore) {
-				bestScore = s;
-			}
-		}
-		//printf("%d - %d\n", score, bestScore);
-		return score - bestScore;
-	}
-}
-
 int moveSearch(Board board, int depth, int* score) {
 	int numMoves, moves[120], sign, move = -1, i;
 	numMoves = getMoves(board, moves);
@@ -711,7 +726,7 @@ int moveSearch(Board board, int depth, int* score) {
 
 inline int eval(Board board) {
 	int pointsPerCenter = 35;
-	return board.score + pointsPerCenter * (countBits(board.bits[WHITE] & CENTER) - countBits(board.bits[BLACK] & CENTER));
+	return board.score;// + pointsPerCenter * (countBits(board.bits[WHITE] & CENTER) - countBits(board.bits[BLACK] & CENTER));
 }
 
 //alpha = lower bound, beta = upper bound
@@ -758,5 +773,4 @@ int alphaBetaMin(Board board, int alpha, int beta, int depthleft ) {
 	}
 	return beta;
 }
-
 

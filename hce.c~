@@ -101,7 +101,7 @@ void onePlayerLoop(Board board) {
 		printf("\n");
 		if (board.ply%2) {
 			printf("Black's move:\n");
-			move = moveSearch(board, 5, &score);
+			move = moveSearch(board, 6, &score);
 			toAlg(board, move, input);
 			printf("%s\n", input);
 		} else {
@@ -123,47 +123,4 @@ void onePlayerLoop(Board board) {
 			printf("Black wins.\n");
 			break;
 		}
-}
-
-void pollDebugMove(Board board){
-	char c0, c1;
-	int p0, p1, prom;
-	
-	printBoard(board);
-	do {
-		printf("initial position: ");
-		scanf(" %c%c", &c0, &c1);
-		p0 = getPos(c0, c1);
-	} while (p0 == NO_SQUARE);
-	printf("attacked?: %d\n", sqAttacked(board, p0, BLACK));	
-	do {
-		printf("destination position: ");
-		scanf(" %c%c", &c0, &c1);
-		p1 = getPos(c0, c1);
-	} while (p1 == NO_SQUARE);
-	
-	do {	
-		printf("promotion piece: ");
-		scanf(" %c", &c0);
-		prom = getPiece(c0);
-	} while(prom == EMPTY);
-	
-	makeMove(&board, MOV(p0, p1, prom));
-	
-	int p;
-	for (p = WP; p <= BK; p++){
-		int n;
-		printf("moves for piece %d:\n", p);
-		for (n = 0; board.pieces[p][n] != NO_SQUARE; n++){
-			printf("\n");
-			printBitboard(pieceMoves(board, p, n));
-		}
-	}
-	
-	if (validateBoardState(board)) {
-		//printMoves(board);
-		printf("perft 1 = %d\n", perftTest(board, 1));
-		printMoves(board);
-		pollDebugMove(board);
-	}
 }
