@@ -20,7 +20,7 @@ int perftTest(Board board, int depth){
 		int n, p, sq0, sq1;
 		bitboard b;
 		p = sd + i;
-		b = board.bits[i];
+		b = board.bits[p];
 		while ((sq0 = popBit(&b)) != NO_SQUARE) {
 			Board b2;
 			bitboard moves;

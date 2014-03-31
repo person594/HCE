@@ -6,6 +6,7 @@
 int main(int argc, char* argv[]) {
   Board board;
   int n;
+  initHashTable();
   if (argc < 4) {
   	initBoard(&board);
   } else {
@@ -94,11 +95,12 @@ void twoPlayerLoop(Board board) {
 
 void onePlayerLoop(Board board) {
 	int move, score, status = 0;		//0: game on, 1: white wins, 2: black wins, -1: stalemate
+	validateBoardState(board);
+	printf("\n");
+	printBoard(board);
+	printf("\n");
 	while (status!=1 && status != 2 && status != -1){
 		char input[21];
-		printf("\n");
-		printBoard(board);
-		printf("\n");
 		if (board.ply%2) {
 			printf("Black's move:\n");
 			move = moveSearch(board, 5, &score);
@@ -111,6 +113,9 @@ void onePlayerLoop(Board board) {
 		makeMove(&board, move);
 		validateBoardState(board);
 		status = getGameStatus(board);
+		printf("\n");
+		printBoard(board);
+		printf("\n");
 	}
 	switch (status) {
 		case -1:

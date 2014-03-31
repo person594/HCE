@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+
 /*
 8 56  57  58  59  60  61  62  63
 7 48  49  50  51  52  53  54  55
@@ -65,6 +66,7 @@ enum {
 
 
 typedef unsigned long long int bitboard;
+typedef unsigned long long int u64;
 //    0   1   2   3   4   5   6   7   8   9   10  11  12     13     14        15
 enum {WP, WN, WB, WR, WQ, WK, BP, BN, BB, BR, BQ, BK, WHITE, BLACK, OCCUPIED, EMPTY};
 extern int VAL[];
@@ -72,14 +74,16 @@ extern int ISBLACK[];
 extern int COLOR[];
 extern bitboard PDIAGS[15];
 extern bitboard NDIAGS[15];
+extern u64 pieceHashes[12][64];
 
-typedef struct s_board{
+typedef struct {
   bitboard bits[16];
   int ply;
   int enpas;
   int castle;
   int score; //white score - black score.
   int squares[64];
+  u64 hash;
 } Board;
 
 
@@ -153,3 +157,6 @@ int moveSearch(Board, int, int*);
 int fromAlg(Board, char*);
 void toAlg(Board, int, char*);
 char getSymbol(int);
+
+u64 getHashCode(Board);
+void initHashTable();

@@ -65,6 +65,7 @@ void clearBoard(Board* board) {
 	board->castle  = C_WK | C_WQ | C_BK | C_BQ;
 	
 	board->score = 0;
+	board->hash = getHashCode(*board);
 }
 
 void initBoard(Board* board){
@@ -126,6 +127,7 @@ void initBoard(Board* board){
 	}
 	
 	board->score = 0;
+	board->hash = getHashCode(*board);
 }
 
 //generates a board given Forsyth-Edwards Notation
@@ -156,6 +158,7 @@ genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock
 		board->squares[r*8 + c] = p;
 	}
 	board->bits[EMPTY] = ~board->bits[OCCUPIED];
+	board->hash = getHashCode(*board);
 }
 
 void clearSq(Board* board, int sq){
@@ -170,6 +173,9 @@ void clearSq(Board* board, int sq){
 	board->bits[EMPTY] |= b;
 	board->score -=VAL[p];
 	board->squares[sq] = EMPTY;
+	if (p <= BK) {
+		board->hash ^= pieceHashes[p][sq];
+	}
 }
 
 void makeMove(Board* board, move mov) {
@@ -184,14 +190,18 @@ void makeMove(Board* board, move mov) {
 	p = board->squares[sq0];
 	
 	//update castling status from changes to the rooks.  changes to the kings are handled later.
-	if (sq0 == A1 || sq1 == A1) {
+	if ((sq0 == A1 || sq1 == A1) && (board->castle & C_WQ)) {
 		board->castle &= (~C_WQ);
-	} else if (sq0 == H1 || sq1 == H1) {
+		board->hash ^= pieceHashes[BP][C_WQ - 1];
+	} else if ((sq0 == H1 || sq1 == H1) && (board->castle & C_WK)) {
 		board->castle &= (~C_WK);
-	} else if (sq0 == A8 || sq1 == A8) {
+		board->hash ^= pieceHashes[BP][C_WK - 1];
+	} else if ((sq0 == A8 || sq1 == A8) && (board->castle & C_BQ)) {
 		board->castle &= (~C_BQ);
-	} else if (sq0 == H8 || sq1 == H8) {
+		board->hash ^= pieceHashes[BP][C_BQ - 1];
+	} else if ((sq0 == H8 || sq1 == H8) && (board->castle & C_BQ)) {
 		board->castle &= (~C_BK);
+		board->hash ^= pieceHashes[BP][C_BK - 1];
 	}
 	
 	clearSq(board, sq1);					//empty the destination square
@@ -240,6 +250,14 @@ void makeMove(Board* board, move mov) {
 		case BK:
 			//prevent castling from side who moved their king
 			mask = (p == WK) ? (C_WK | C_WQ) : (C_BK | C_BQ);
+			int m2 = mask & board->castle;
+			int bit = C_WK;
+			while (bit <= m2) {
+				if (m2 & bit) {
+					board->hash ^= pieceHashes[BP][bit-1];
+				}
+				bit <<= 1;
+			}
 			board->castle &= (~mask);
 			if (sq1 - sq0 == 2){	//king side castling
 				makeMove(board, MOV(sq1+1, sq1-1, 0));
@@ -250,8 +268,16 @@ void makeMove(Board* board, move mov) {
 			}
 			
 	}
+	if (board->enpas != NO_SQUARE)	{
+	board->hash ^= pieceHashes[WP][board->enpas % 8];	//update enpassant status in the hash.
+	}
+	if (enpas != NO_SQUARE) {
+		board->hash ^= pieceHashes[WP][enpas % 8];
+	}
 	board->enpas = enpas;
 	board->ply++;
+	board->hash ^= pieceHashes[p][sq0];
+	board->hash ^= pieceHashes[p][sq1];
 }
 
 int diagslide(bitboard occupied, int p0, int p1) {
@@ -591,6 +617,10 @@ int validateBoardState(Board board) {
 		}
 	}
 	
+	if (board.hash != getHashCode(board)) {
+		printf("Incorrect hash code, expected: %llx, actual: %llx.\n", getHashCode(board), board.hash);
+	}
+	
 	return 1;
 }
 
@@ -663,6 +693,42 @@ int getGameStatus(Board board) {
 	return -1;
 }
 
+//compared 2 moves, and returns whether p0 should be ordered before (>0), equally (0), or after (<0) p1.
+inline int compareMoves(Board board, int m0, int m1) {
+	int cap0 = VAL[board.squares[TO(m0)]];
+	int cap1 = VAL[board.squares[TO(m1)]];
+	int p0 = VAL[board.squares[FROM(m0)]];
+	int p1 = VAL[board.squares[FROM(m1)]];
+	if (cap0 != cap1) {
+		return cap0 - cap1;
+	} else if (cap0 == 0){
+		return p0 - p1;
+	} else {
+		return p1 - p0;
+	}
+}
+
+//quicksort a movelist in place
+void sortMoves(Board board, int numMoves, int* moves) {
+	if (numMoves <= 1) {
+		return;
+	}
+	int pivot = *moves;
+	int* pivotPos = moves;
+	int* pos = pivotPos+1;
+	int* end = moves + numMoves - 1;
+	while (pos <= end) {
+		if (compareMoves(board, *pos, pivot) < 0) {
+			*pivotPos++ = *pos;
+			*pos = *pivotPos;
+		}
+		pos++;
+	}
+	*pivotPos = pivot;
+	sortMoves(board, pivotPos - moves, moves);
+	sortMoves(board, end - pivotPos, pivotPos + 1);
+}
+
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Board board, int* moves) {
 	int i, n, sd, count = 0;
@@ -687,6 +753,7 @@ int getMoves(Board board, int* moves) {
 			}
 		}
 	}
+	//sortMoves(board, count, moves);
 	return count;
 }
 
@@ -700,7 +767,7 @@ int moveSearch(Board board, int depth, int* score) {
 			int s;
 			b2 = board;
 			makeMove(&b2, moves[i]);
-			s = alphaBetaMax(b2, VAL[BK], VAL[WK], depth);
+			s = alphaBetaMax(b2, VAL[BK], min, depth);
 			if (s < min) {
 				min = s;
 				move = moves[i];
@@ -713,7 +780,7 @@ int moveSearch(Board board, int depth, int* score) {
 			int s;
 			b2 = board;
 			makeMove(&b2, moves[i]);
-			s = alphaBetaMin(b2, VAL[BK], VAL[WK], depth);
+			s = alphaBetaMin(b2, max, VAL[WK], depth);
 			if (s > max) {
 				max = s;
 				move = moves[i];
@@ -726,7 +793,7 @@ int moveSearch(Board board, int depth, int* score) {
 
 inline int eval(Board board) {
 	int pointsPerCenter = 35;
-	return board.score;// + pointsPerCenter * (countBits(board.bits[WHITE] & CENTER) - countBits(board.bits[BLACK] & CENTER));
+	return board.score + pointsPerCenter * (countBits(board.bits[WHITE] & CENTER) - countBits(board.bits[BLACK] & CENTER));
 }
 
 //alpha = lower bound, beta = upper bound
