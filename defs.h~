@@ -146,7 +146,7 @@ typedef unsigned int move;
 
 //get a hash table key from a hash value
 #define HASHKEY(n) (n % TABLESIZE)
-#define HASENTRY(n) (transpositionTable[HASHKEY(n)].hashvalue == n)
+#define HASENTRY(n) (transpositionTable[HASHKEY(n)].hash == n)
 
 int pos(bitboard);
 void printBitboard(bitboard);

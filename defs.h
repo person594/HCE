@@ -174,6 +174,8 @@ void onePlayerLoop(Board);
 int getGameStatus(Board);
 
 int getMoves(Board, int*);
+int alphaBetaMax(Board, int, int, int, int*);
+int alphaBetaMin(Board, int, int, int, int*);
 int moveSearch(Board, int, int*);
 
 int fromAlg(Board, char*);
