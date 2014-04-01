@@ -262,9 +262,11 @@ void makeMove(Board* board, move mov) {
 			if (sq1 - sq0 == 2){	//king side castling
 				makeMove(board, MOV(sq1+1, sq1-1, 0));
 				board->ply--;
+				board->hash ^= BLACKTURNHASH;
 			} else if (sq0 - sq1 == 2){  //queen side castling
 				makeMove(board, MOV(sq1-2, sq1+1, 0));
 				board->ply--;
+				board->hash ^= BLACKTURNHASH;
 			}
 			
 	}
@@ -276,6 +278,7 @@ void makeMove(Board* board, move mov) {
 	}
 	board->enpas = enpas;
 	board->ply++;
+	board->hash ^= BLACKTURNHASH;
 	board->hash ^= pieceHashes[p][sq0];
 	board->hash ^= pieceHashes[p][sq1];
 }
@@ -693,42 +696,6 @@ int getGameStatus(Board board) {
 	return -1;
 }
 
-//compared 2 moves, and returns whether p0 should be ordered before (>0), equally (0), or after (<0) p1.
-inline int compareMoves(Board board, int m0, int m1) {
-	int cap0 = VAL[board.squares[TO(m0)]];
-	int cap1 = VAL[board.squares[TO(m1)]];
-	int p0 = VAL[board.squares[FROM(m0)]];
-	int p1 = VAL[board.squares[FROM(m1)]];
-	if (cap0 != cap1) {
-		return cap0 - cap1;
-	} else if (cap0 == 0){
-		return p0 - p1;
-	} else {
-		return p1 - p0;
-	}
-}
-
-//quicksort a movelist in place
-void sortMoves(Board board, int numMoves, int* moves) {
-	if (numMoves <= 1) {
-		return;
-	}
-	int pivot = *moves;
-	int* pivotPos = moves;
-	int* pos = pivotPos+1;
-	int* end = moves + numMoves - 1;
-	while (pos <= end) {
-		if (compareMoves(board, *pos, pivot) < 0) {
-			*pivotPos++ = *pos;
-			*pos = *pivotPos;
-		}
-		pos++;
-	}
-	*pivotPos = pivot;
-	sortMoves(board, pivotPos - moves, moves);
-	sortMoves(board, end - pivotPos, pivotPos + 1);
-}
-
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Board board, int* moves) {
 	int i, n, sd, count = 0;
@@ -753,7 +720,6 @@ int getMoves(Board board, int* moves) {
 			}
 		}
 	}
-	//sortMoves(board, count, moves);
 	return count;
 }
 
@@ -797,7 +763,7 @@ inline int eval(Board board) {
 }
 
 //alpha = lower bound, beta = upper bound
-int alphaBetaMax(Board board, int alpha, int beta, int depthleft ) {
+int alphaBetaMax(Board board, int alpha, int beta, int depthleft) {
 	int numMoves, moves[120], i;
 
 	if (depthleft <= 0 || !board.bits[WK] || !board.bits[BK]) {
@@ -809,7 +775,24 @@ int alphaBetaMax(Board board, int alpha, int beta, int depthleft ) {
 		Board b2;
 		b2 = board;
 		makeMove(&b2, moves[i]);
-		score = alphaBetaMin(b2, alpha, beta, depthleft - 1 );      
+		
+		tableEntry* t = &transpositionTable[HASHKEY(b2.hash)];
+		if (HASENTRY(b2.hash)) {
+			if (t->depth >= depthleft) {
+				//printf("yay\n");
+				score = t->value;
+			} else {
+				score = alphaBetaMin(b2, alpha, beta, depthleft - 1 );
+				t->value = score;
+				t->depth = depthleft;
+			}
+		} else {
+			score = alphaBetaMin(b2, alpha, beta, depthleft - 1 );
+			t->hash = b2.hash;
+			t->value = score;
+			t->depth = depthleft;
+		}
+		
 		if( score >= beta ) {
 			return beta;   // fail hard beta-cutoff
 		} if( score > alpha ) {
@@ -819,7 +802,7 @@ int alphaBetaMax(Board board, int alpha, int beta, int depthleft ) {
 	return alpha;
 }
 
-int alphaBetaMin(Board board, int alpha, int beta, int depthleft ) {
+int alphaBetaMin(Board board, int alpha, int beta, int depthleft) {
 	int numMoves, moves[120], i;
 	
 	if (depthleft <= 0 || !board.bits[WK] || !board.bits[BK]) {
@@ -831,7 +814,22 @@ int alphaBetaMin(Board board, int alpha, int beta, int depthleft ) {
 		Board b2;
 		b2 = board;
 		makeMove(&b2, moves[i]);
-		score = alphaBetaMax(b2, alpha, beta, depthleft - 1 );
+		tableEntry* t = &transpositionTable[HASHKEY(b2.hash)];
+		if (HASENTRY(b2.hash)) {
+			if (t->depth >= depthleft) {
+				//printf("yay\n");
+				score = t->value;
+			} else {
+				score = alphaBetaMax(b2, alpha, beta, depthleft - 1 );
+				t->value = score;
+				t->depth = depthleft;
+			}
+		} else {
+			score = alphaBetaMax(b2, alpha, beta, depthleft - 1 );
+			t->hash = b2.hash;
+			t->value = score;
+			t->depth = depthleft;
+		}
 		if (score <= alpha) {
 			return alpha;   // fail hard beta-cutoff
 		} if( score < beta ) {

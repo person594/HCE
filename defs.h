@@ -64,9 +64,19 @@ enum {
 #define Q_VAL 900
 #define K_VAL 90000
 
+#define TABLESIZE 16384
 
 typedef unsigned long long int bitboard;
 typedef unsigned long long int u64;
+
+typedef struct {
+	u64 hash;					//the full hashvalue of the position, as opposed to the index, which is of a smaller range
+	int depth;				//the depth left when this position was encountered.
+	int value;				//the value assigned to this
+	int move;					//if depth is nonzero, the previously determined best move
+} tableEntry;
+
+
 //    0   1   2   3   4   5   6   7   8   9   10  11  12     13     14        15
 enum {WP, WN, WB, WR, WQ, WK, BP, BN, BB, BR, BQ, BK, WHITE, BLACK, OCCUPIED, EMPTY};
 extern int VAL[];
@@ -75,6 +85,7 @@ extern int COLOR[];
 extern bitboard PDIAGS[15];
 extern bitboard NDIAGS[15];
 extern u64 pieceHashes[12][64];
+extern tableEntry transpositionTable[TABLESIZE];
 
 typedef struct {
   bitboard bits[16];
@@ -125,6 +136,17 @@ typedef unsigned int move;
 #define TO(mov) FROM(mov>>6)
 #define PROM(mov) (mov >> 12) //& 0x0f
 #define MOV(from, to, pawn) from|(to<<6)|(pawn<<12)
+
+//hash table things:
+
+#define EPHASH(sq) (pieceHashes[WP][sq%8])
+//note this only works when given a single castling flag, not a set of flags
+#define CASTLEHASH(flag) (pieceHashes[BP][flag - 1])
+#define BLACKTURNHASH pieceHashes[BP][2]
+
+//get a hash table key from a hash value
+#define HASHKEY(n) (n % TABLESIZE)
+#define HASENTRY(n) (transpositionTable[HASHKEY(n)].hash == n)
 
 int pos(bitboard);
 void printBitboard(bitboard);
