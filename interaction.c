@@ -5,16 +5,16 @@
 
 //returns -1 on bad syntax, -2 on an illegal move, and -3 on an ambiguous move
 int fromAlg(Board board, char* str) {
-		int sd, p, prom, move = -2, sq0, sq1;
+		int sd, p, prom = 0, move = -2, sq0, sq1;
 		char rank0 = 0, row0 = 0, rank, row, ch;
 		bitboard b;
 		
 		sd = (board.ply%2) * 6;
 		if (strstr(str, "O-O") == str) {	//str starts with O-O, some kind of castling
-			str +=3;
+			str += 3;
 			p = WK + sd;
 			rank = '1' + (board.ply%2)*7;
-			if (strstr(str, "-O")) {				//O-O-O, queenside
+			if (strstr(str, "-O") == str) {				//O-O-O, queenside
 				str += 2;
 				row = 'c';
 			} else {
@@ -99,8 +99,10 @@ int fromAlg(Board board, char* str) {
 				return -1;
 			}
 		}
-		
+
 		sq1 = 8*(rank - '1') + (row - 'a');
+		
+		//printf("%c%c -> %c%c\n",row0, rank0, row, rank);
 		
 		b = board.bits[p];
 		while ((sq0 = popBit(&b)) != NO_SQUARE) {					//check all pieces of type p
@@ -109,7 +111,7 @@ int fromAlg(Board board, char* str) {
 					if (sq0/8 != rank0 - '1') {
 						continue;
 					}
-				} if (row0) {
+				} if (row0) { 
 						if (sq0%8 != row0 - 'a') {
 							continue;
 					}
@@ -129,7 +131,6 @@ int fromAlg(Board board, char* str) {
 				return -2;
 			}
 		}
-		
 		return move;
 }
 

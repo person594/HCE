@@ -499,10 +499,14 @@ bitboard pieceMoves(Board board, int p, int sq) {
 }
 
 
-int countBits(bitboard b) {
-	int s;
-	for (s = 0; b; s ++, b &= b-1);
-	return s;
+inline int countBits(bitboard b) {
+	u64 c;
+	asm (
+		"popcntq %1, %0"
+		: "=r" (c)
+		: "r" (b)
+	);
+	return c;
 }
 
 /*

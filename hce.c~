@@ -103,7 +103,7 @@ void onePlayerLoop(Board board) {
 		char input[21];
 		if (board.ply%2) {
 			printf("Black's move:\n");
-			move = moveSearch(board, 6, &score);
+			move = moveSearch(board, 7, &score);
 			toAlg(board, move, input);
 			printf("%s\n", input);
 		} else {
