@@ -84,7 +84,7 @@ extern int ISBLACK[];
 extern int COLOR[];
 extern bitboard PDIAGS[15];
 extern bitboard NDIAGS[15];
-extern u64 pieceHashes[12][64];
+extern const u64 hashvals[781];
 extern tableEntry transpositionTable[TABLESIZE];
 
 typedef struct {
@@ -95,6 +95,7 @@ typedef struct {
   int score; //white score - black score.
   int squares[64];
   u64 hash;
+  u64 ephash;		//last calculated en passant hash value, used for unapplying it.
 } Board;
 
 
@@ -138,11 +139,17 @@ typedef unsigned int move;
 #define MOV(from, to, pawn) from|(to<<6)|(pawn<<12)
 
 //hash table things:
-
-#define EPHASH(sq) (pieceHashes[WP][sq%8])
+#define POLYGLOTPIECE(p) (2*((p)%6) + 1 - (p)/6)
+#define PHASH(p, sq) (hashvals[64*POLYGLOTPIECE(p) + sq])
+#define EPHASHRAW(sq) (hashvals[772+(sq)%8])
+#define EPHASH(board) ((board).enpas == NO_SQUARE ? 0ull : \
+                      (board).ply%2 ?      /*black to move*/ \
+                      ((board).bits[BP] & TRANS(0x5ull, (board).enpas%8 - 1, (board).enpas/8 + 1) ? EPHASHRAW((board).enpas) : 0ull) :\
+                      ((board).bits[WP] & TRANS(0x5ull, (board).enpas%8 - 1, (board).enpas/8 - 1) ? EPHASHRAW((board).enpas) : 0ull))
+                      
 //note this only works when given a single castling flag, not a set of flags
-#define CASTLEHASH(flag) (pieceHashes[BP][flag - 1])
-#define BLACKTURNHASH pieceHashes[BP][2]
+#define CASTLEHASH(flag) (hashvals[768 + (bsf(flag) - 1)])
+#define WHITETURNHASH hashvals[780]
 
 //get a hash table key from a hash value
 #define HASHKEY(n) (n % TABLESIZE)
@@ -174,6 +181,8 @@ void onePlayerLoop(Board);
 int getGameStatus(Board);
 
 int getMoves(Board, int*);
+int alphaBetaMax(Board, int, int, int, int*);
+int alphaBetaMin(Board, int, int, int, int*);
 int moveSearch(Board, int, int*);
 
 int fromAlg(Board, char*);

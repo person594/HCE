@@ -49,6 +49,7 @@ void printBoard(Board board){
 		printf("%c[0m", 27);
 		printf("\n");
 	}
+	printf("%llx\n", board.hash);
 }
 
 void clearBoard(Board* board) {
@@ -65,6 +66,7 @@ void clearBoard(Board* board) {
 	board->castle  = C_WK | C_WQ | C_BK | C_BQ;
 	
 	board->score = 0;
+	board->ephash = 0ull;
 	board->hash = getHashCode(*board);
 }
 
@@ -127,6 +129,7 @@ void initBoard(Board* board){
 	}
 	
 	board->score = 0;
+	board->ephash = 0ull;
 	board->hash = getHashCode(*board);
 }
 
@@ -136,6 +139,7 @@ genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock
 	clearBoard(board);
 	board->ply = 2*(movenum-1) + (active == BLACK);
 	board->enpas = enpas;
+	board->ephash = EPHASH(board);
 	board->castle = castle;
 	for (i = 0; str[i]; i++, c++) {
 		int p;
@@ -174,7 +178,7 @@ void clearSq(Board* board, int sq){
 	board->score -=VAL[p];
 	board->squares[sq] = EMPTY;
 	if (p <= BK) {
-		board->hash ^= pieceHashes[p][sq];
+		board->hash ^= PHASH(p, sq);
 	}
 }
 
@@ -192,16 +196,16 @@ void makeMove(Board* board, move mov) {
 	//update castling status from changes to the rooks.  changes to the kings are handled later.
 	if ((sq0 == A1 || sq1 == A1) && (board->castle & C_WQ)) {
 		board->castle &= (~C_WQ);
-		board->hash ^= pieceHashes[BP][C_WQ - 1];
+		board->hash ^= CASTLEHASH(C_WQ);
 	} else if ((sq0 == H1 || sq1 == H1) && (board->castle & C_WK)) {
 		board->castle &= (~C_WK);
-		board->hash ^= pieceHashes[BP][C_WK - 1];
+		board->hash ^= CASTLEHASH(C_WK);
 	} else if ((sq0 == A8 || sq1 == A8) && (board->castle & C_BQ)) {
 		board->castle &= (~C_BQ);
-		board->hash ^= pieceHashes[BP][C_BQ - 1];
+		board->hash ^= CASTLEHASH(C_BQ);
 	} else if ((sq0 == H8 || sq1 == H8) && (board->castle & C_BK)) {
 		board->castle &= (~C_BK);
-		board->hash ^= pieceHashes[BP][C_BK - 1];
+		board->hash ^= CASTLEHASH(C_BK);
 	}
 	
 	clearSq(board, sq1);					//empty the destination square
@@ -254,7 +258,7 @@ void makeMove(Board* board, move mov) {
 			int bit = C_WK;
 			while (bit <= m2) {		//update our hash value.
 				if (m2 & bit) {
-					board->hash ^= pieceHashes[BP][bit-1];
+					board->hash ^= CASTLEHASH(bit);
 				}
 				bit <<= 1;
 			}
@@ -262,25 +266,23 @@ void makeMove(Board* board, move mov) {
 			if (sq1 - sq0 == 2){	//king side castling
 				makeMove(board, MOV(sq1+1, sq1-1, 0));
 				board->ply--;
-				board->hash ^= BLACKTURNHASH;
+				board->hash ^= WHITETURNHASH;
 			} else if (sq0 - sq1 == 2){  //queen side castling
 				makeMove(board, MOV(sq1-2, sq1+1, 0));
 				board->ply--;
-				board->hash ^= BLACKTURNHASH;
+				board->hash ^= WHITETURNHASH;
 			}
 			
 	}
-	if (board->enpas != NO_SQUARE)	{
-	board->hash ^= pieceHashes[WP][board->enpas % 8];	//update enpassant status in the hash.
-	}
-	if (enpas != NO_SQUARE) {
-		board->hash ^= pieceHashes[WP][enpas % 8];
-	}
-	board->enpas = enpas;
-	board->ply++;
-	board->hash ^= BLACKTURNHASH;
-	board->hash ^= pieceHashes[p][sq0];
-	board->hash ^= pieceHashes[p][sq1];
+	board->hash ^= board->ephash;		//unapply the last ep hash;
+	board->ply++;										//increment board ply, remember this needs to be updated before calling EPHASH
+	board->hash ^= WHITETURNHASH;
+	board->enpas = enpas;		//update en passant square
+	board->ephash = EPHASH(*board);	//calculate/store new ep has
+	board->hash ^= board->ephash;   //apply new ep hash
+	
+	board->hash ^= PHASH(p, sq0);
+	board->hash ^= PHASH(p, sq1);
 }
 
 int diagslide(bitboard occupied, int p0, int p1) {
@@ -499,7 +501,7 @@ bitboard pieceMoves(Board board, int p, int sq) {
 }
 
 
-int countBits(bitboard b) {
+inline int countBits(bitboard b) {
 	u64 c;
 	asm (
 		"popcntq %1, %0"
