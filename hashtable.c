@@ -31,6 +31,26 @@ void initHashTable() {
 	}
 }
 
+/*  I need to modify my representation of castle moves and pawn promotion pieces before implementing this.
+int loadOpeningBook(char *fileName) {
+	FILE *fp = fopen(fileName, "r");
+	if (!fp) {
+		return -1;
+	}
+	int entries = 0;
+	while (!feof(fp)) {
+		tableEntry entry;
+		short polymov = 0; //the polyglot-format move
+		//get the hash value
+		fread(&entry.hash, 64, 1, fp);
+		//get the move
+		fread(&pmove, 16, 1, fp);
+		//convert the move to a sensible format
+		entry.move = MOV(pmov&0x3f, (pmov>>6)&0x3f, pmov>>12)
+	}
+}
+*/
+
 //This function is not fast.  It should be used to generate an initial hashcode for a new board.  If modifying an existing board, the board's hashcode should be modified on the fly.
 u64 getHashCode(Board board) {
 	u64 hash = 0ull;
@@ -50,7 +70,7 @@ u64 getHashCode(Board board) {
 		}
 	}
 	//ply
-	if (!board.ply%2) {
+	if (board.ply%2 == 0) {
 		hash ^= WHITETURNHASH;
 	}
 	return hash;

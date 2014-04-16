@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
   	}
   	genBoard(&board, argv[1], col, cast, ep, hc, fm);
   }
-  
-  onePlayerLoop(board);
+  twoPlayerLoop(board);
+  //onePlayerLoop(board);
 }
 
 
@@ -68,7 +68,7 @@ void twoPlayerLoop(Board board) {
 					printf("invalid move.\n");
 					break;
 				case -3:
-					printf("ambiguous moce.\n");
+					printf("ambiguous move.\n");
 					break;
 				default:
 					printf("%d\n", move);
@@ -78,6 +78,7 @@ void twoPlayerLoop(Board board) {
 		}
 		sd = (board.ply%2)*6;
 		makeMove(&board, move);
+		validateBoardState(board);
 		status = getGameStatus(board);
 	}
 	switch (status) {

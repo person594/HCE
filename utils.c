@@ -49,7 +49,7 @@ void printBoard(Board board){
 		printf("%c[0m", 27);
 		printf("\n");
 	}
-	printf("%llx\n", board.hash);
+	//printf("%llx\n", board.hash);
 }
 
 void clearBoard(Board* board) {
@@ -625,9 +625,14 @@ int validateBoardState(Board board) {
 			return 0;
 		}
 	}
+	if (board.ephash != EPHASH(board)) {
+		printf("Incorrect en passant hash code, expected: %llx, actual: %llx.\n", EPHASH(board), board.ephash);
+		return 0;
+	}
 	
 	if (board.hash != getHashCode(board)) {
 		printf("Incorrect hash code, expected: %llx, actual: %llx.\n", getHashCode(board), board.hash);
+		return 0;
 	}
 	
 	return 1;

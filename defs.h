@@ -144,8 +144,8 @@ typedef unsigned int move;
 #define EPHASHRAW(sq) (hashvals[772+(sq)%8])
 #define EPHASH(board) ((board).enpas == NO_SQUARE ? 0ull : \
                       (board).ply%2 ?      /*black to move*/ \
-                      ((board).bits[BP] & TRANS(0x5ull, (board).enpas%8 - 1, (board).enpas/8 + 1) ? EPHASHRAW((board).enpas) : 0ull) :\
-                      ((board).bits[WP] & TRANS(0x5ull, (board).enpas%8 - 1, (board).enpas/8 - 1) ? EPHASHRAW((board).enpas) : 0ull))
+                      ((board).bits[BP] & TRANS(0x5ull, (board).enpas%8 - 1, 3) ? EPHASHRAW((board).enpas) : 0ull) :\
+                      ((board).bits[WP] & TRANS(0x5ull, (board).enpas%8 - 1, 4) ? EPHASHRAW((board).enpas) : 0ull))
                       
 //note this only works when given a single castling flag, not a set of flags
 #define CASTLEHASH(flag) (hashvals[768 + (bsf(flag))])

@@ -49,7 +49,14 @@ void printBoard(Board board){
 		printf("%c[0m", 27);
 		printf("\n");
 	}
-	printf("%llx\n", board.hash);
+	
+	for (n = 0; n < 64; n++) {
+		if (n%8 == 0) {
+			printf("\n");
+		}
+		printf("%c", getSymbol(board.squares[n]));
+	}
+	//printf("%llx\n", board.hash);
 }
 
 void clearBoard(Board* board) {
@@ -139,7 +146,7 @@ genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock
 	clearBoard(board);
 	board->ply = 2*(movenum-1) + (active == BLACK);
 	board->enpas = enpas;
-	board->ephash = EPHASH(board);
+	board->ephash = EPHASH(*board);
 	board->castle = castle;
 	for (i = 0; str[i]; i++, c++) {
 		int p;
@@ -625,9 +632,14 @@ int validateBoardState(Board board) {
 			return 0;
 		}
 	}
+	if (board.ephash != EPHASH(board)) {
+		printf("Incorrect en passant hash code, expected: %llx, actual: %llx.\n", EPHASH(board), board.ephash);
+		return 0;
+	}
 	
 	if (board.hash != getHashCode(board)) {
 		printf("Incorrect hash code, expected: %llx, actual: %llx.\n", getHashCode(board), board.hash);
+		return 0;
 	}
 	
 	return 1;
