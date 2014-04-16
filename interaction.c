@@ -70,20 +70,20 @@ int fromAlg(Board board, char* str) {
 			}
 			rank = *str++;
 			if (*str == '=') {
-				if (p == WP | p == BP) {
+				if (p == WP || p == BP) {
 					str++;
-					switch (ch = *str) {
+					switch (ch = *str++) {
 						case 'N':
-							prom = WN + sd;
+							prom = WN;
 							break;
 						case 'B':
-							prom = WB + sd;
+							prom = WB;
 							break;
 						case 'R':
-							prom = WR + sd;
+							prom = WR;
 							break;
 						case 'Q':
-							prom = WQ + sd;
+							prom = WQ;
 							break;
 						default:
 							return -1;

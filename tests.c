@@ -71,25 +71,25 @@ int printMoves(Board board){
 			while (moves){
 				sq1 = popBit(&moves);
 				if ((p == WP && sq1/8 == 7) || (p == BP && sq1/8 == 0))	{	//pawn promotion
-					makeMove(&b2, MOV(sq0, sq1, WN + sd));
+					makeMove(&b2, MOV(sq0, sq1, WN));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WB + sd));
+					makeMove(&b2, MOV(sq0, sq1, WB));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WR + sd));
+					makeMove(&b2, MOV(sq0, sq1, WR));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WQ + sd));
+					makeMove(&b2, MOV(sq0, sq1, WQ));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}

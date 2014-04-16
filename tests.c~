@@ -45,9 +45,11 @@ int perftTest(Board board, int depth){
 				makeMove(&b2, MOV(sq0, sq1, WQ + sd));
 				sum += perftTest(b2, depth - 1);
 				
+				/*
 				if (!validateBoardState(b2)) {
 					exit(0);
 				}
+				*/
 			}
 		}
 	}

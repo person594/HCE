@@ -11,8 +11,6 @@ int fromAlg(Board board, char* str) {
 		
 		sd = (board.ply%2) * 6;
 		if (strstr(str, "O-O") == str) {	//str starts with O-O, some kind of castling
-			rank0 = 0;
-			row0 = 0;
 			str += 3;
 			p = WK + sd;
 			rank = '1' + (board.ply%2)*7;
@@ -72,20 +70,21 @@ int fromAlg(Board board, char* str) {
 			}
 			rank = *str++;
 			if (*str == '=') {
-				if (p == WP | p == BP) {
+				if (p == WP || p == BP) {
 					str++;
-					switch (ch = *str) {
+					printf("promotion: %c\n", *str);
+					switch (ch = *str++) {
 						case 'N':
-							prom = WN + sd;
+							prom = WN;
 							break;
 						case 'B':
-							prom = WB + sd;
+							prom = WB;
 							break;
 						case 'R':
-							prom = WR + sd;
+							prom = WR;
 							break;
 						case 'Q':
-							prom = WQ + sd;
+							prom = WQ;
 							break;
 						default:
 							return -1;

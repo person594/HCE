@@ -187,7 +187,7 @@ void makeMove(Board* board, move mov) {
 	int i, p, sq0, sq1, prom, enpas = NO_SQUARE;
 	sq0 = FROM(mov);
 	sq1 = TO(mov);
-	prom = PROM(mov);
+	prom = PROM(mov) + 6*(board->ply%2);
 	bitboard b0, b1;
 	b0 = BIT(sq0);
 	b1 = BIT(sq1);
@@ -675,25 +675,25 @@ int getGameStatus(Board board) {
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
 					//king square can be obtained from the old board, as it won't change from a pawn move
 					kingSq = bsf(board.bits[WK + sd]);
-					makeMove(&b2, MOV(sq, m, WN + sd));
+					makeMove(&b2, MOV(sq, m, WN));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, WB + sd));
+					makeMove(&b2, MOV(sq, m, WB));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, WR + sd));
+					makeMove(&b2, MOV(sq, m, WR));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq, m, WQ + sd));
+				makeMove(&b2, MOV(sq, m, WQ));
 				kingSq = bsf(b2.bits[WK + sd]);
 				if (!sqAttacked(b2, kingSq, opponent)){
 					return status;
@@ -728,12 +728,12 @@ int getMoves(Board board, int* moves) {
 			bitboard movebits = pieceMoves(board, p, sq);
 			while ((m = popBit(&movebits)) != NO_SQUARE) {
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
-					*moves++ = MOV(sq, m, WN + sd);
-					*moves++ = MOV(sq, m, WB + sd);
-					*moves++ = MOV(sq, m, WR + sd);
+					*moves++ = MOV(sq, m, WN);
+					*moves++ = MOV(sq, m, WB);
+					*moves++ = MOV(sq, m, WR);
 					count += 3;
 				}
-				*moves++ = MOV(sq, m, WN + sd);
+				*moves++ = MOV(sq, m, WN);
 				count++;
 			}
 		}

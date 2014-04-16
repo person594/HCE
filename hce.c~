@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
   	}
   	genBoard(&board, argv[1], col, cast, ep, hc, fm);
   }
-  //twoPlayerLoop(board);
-  onePlayerLoop(board);
+  twoPlayerLoop(board);
+  //onePlayerLoop(board);
 }
 
 
@@ -128,5 +128,7 @@ void onePlayerLoop(Board board) {
 		case 2:
 			printf("Black wins.\n");
 			break;
+		default:
+			printf("Unknown game status: %d.  Exiting.\n", status);
 		}
 }
