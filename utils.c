@@ -231,10 +231,12 @@ void makeMove(Board* board, move mov) {
 			} else if (sq1  == board->enpas){		//enpassant capture
 				clearSq(board, board->enpas - 8);
 			} else if (sq1/8 == 7){	//pawn promotion
+				//clearSq(board, sq1);
 				board->bits[p] &= ~b1;
 				board->bits[prom] |= b1;
-				board->score += VAL[prom] - VAL[p];
+				board->score += VAL[prom] - VAL[WP];
 				board->squares[sq1] = prom;
+				board->hash ^= PHASH(p, sq1) ^ PHASH(prom, sq1);
 			}
 			break;
 		case BP:
@@ -243,10 +245,12 @@ void makeMove(Board* board, move mov) {
 			} else if (sq1  == board->enpas){		//enpassant capture
 				clearSq(board, board->enpas + 8);
 			} else if (sq1/8 == 0){	//pawn promotion
+				//clearSq(board, sq1);
 				board->bits[p] &= ~b1;
 				board->bits[prom] |= b1;
-				board->score += VAL[prom] - VAL[p];
+				board->score += VAL[prom] - VAL[BP];
 				board->squares[sq1] = prom;
+				board->hash ^= PHASH(p, sq1) ^ PHASH(prom, sq1);
 			}
 			break;
 			
