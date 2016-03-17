@@ -784,17 +784,17 @@ int getMoves(Board board, int* moves) {
 	return count;
 }
 
-int moveSearch(Board board, int depth, int* score) {
+int moveSearch(Board *board, int depth, int* score) {
 	int numMoves, moves[120], sign, move = -1, i, nextMove;
-	numMoves = getMoves(board, moves);
-	if (board.ply % 2) {  //black to move, minimize
+	numMoves = getMoves(*board, moves);
+	if (board->ply % 2) {  //black to move, minimize
 		int min = VAL[WK];
 		for (i = 0; i < numMoves; i++) {
 			Board b2;
 			int s;
-			b2 = board;
+			b2 = *board;
 			makeMove(&b2, moves[i]);
-			s = alphaBetaMax(b2, VAL[BK], min, depth, &nextMove);
+			s = alphaBetaMax(&b2, VAL[BK], min, depth, &nextMove);
 			if (s < min) {
 				min = s;
 				move = moves[i];
@@ -805,9 +805,9 @@ int moveSearch(Board board, int depth, int* score) {
 		for (i = 0; i < numMoves; i++) {
 			Board b2;
 			int s;
-			b2 = board;
+			b2 = *board;
 			makeMove(&b2, moves[i]);
-			s = alphaBetaMin(b2, max, VAL[WK], depth, &nextMove);
+			s = alphaBetaMin(&b2, max, VAL[WK], depth, &nextMove);
 			if (s > max) {
 				max = s;
 				move = moves[i];
@@ -818,41 +818,41 @@ int moveSearch(Board board, int depth, int* score) {
 	return move;
 }
 
-inline int eval(Board board) {
+inline int eval(Board *board) {
 	int pointsPerCenter = 35;
-	return board.score + pointsPerCenter * (countBits(board.bits[WHITE] & CENTER) - countBits(board.bits[BLACK] & CENTER));
+	return board->score + pointsPerCenter * (countBits(board->bits[WHITE] & CENTER) - countBits(board->bits[BLACK] & CENTER));
 }
 
 //alpha = lower bound, beta = upper bound
-int alphaBetaMax(Board board, int alpha, int beta, int depthleft, int* nextMove) {
+int alphaBetaMax(Board *board, int alpha, int beta, int depthleft, int* nextMove) {
 	int numMoves, moves[120], i;
 	*nextMove = -1;
-	if (depthleft <= 0 || !board.bits[WK] || !board.bits[BK]) {
+	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
 		return eval(board);
 	}
-	numMoves = getMoves(board, moves);
+	numMoves = getMoves(*board, moves);
 	for (i = 0; i < numMoves; i++) {
 		int score;
-		Board b2;
-		b2 = board;
-		makeMove(&b2, moves[i]);
+		makeMove(board, moves[i]);
 		
-		tableEntry* t = &transpositionTable[HASHKEY(b2.hash)];
-		if (HASENTRY(b2.hash)) {
+		tableEntry* t = &transpositionTable[HASHKEY(board->hash)];
+		if (HASENTRY(board->hash)) {
 			if (t->depth >= depthleft) {
 				//printf("yay\n");
 				score = t->value;
 			} else {
-				score = alphaBetaMin(b2, alpha, beta, depthleft - 1, &t->move);
+				score = alphaBetaMin(board, alpha, beta, depthleft - 1, &t->move);
 				t->value = score;
 				t->depth = depthleft;
 			}
 		} else {
-			score = alphaBetaMin(b2, alpha, beta, depthleft - 1, &t->move);
-			t->hash = b2.hash;
+			score = alphaBetaMin(board, alpha, beta, depthleft - 1, &t->move);
+			t->hash = board->hash;
 			t->value = score;
 			t->depth = depthleft;
 		}
+		
+		unmakeMove(board, moves[i]);
 		
 		if( score >= beta ) {
 			*nextMove = moves[i];
@@ -865,34 +865,35 @@ int alphaBetaMax(Board board, int alpha, int beta, int depthleft, int* nextMove)
 	return alpha;
 }
 
-int alphaBetaMin(Board board, int alpha, int beta, int depthleft, int* nextMove) {
+int alphaBetaMin(Board *board, int alpha, int beta, int depthleft, int* nextMove) {
 	int numMoves, moves[120], i;
 	*nextMove = -1;
-	if (depthleft <= 0 || !board.bits[WK] || !board.bits[BK]) {
+	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
 		return eval(board);
 	}
-	numMoves = getMoves(board, moves);
+	numMoves = getMoves(*board, moves);
 	for (i = 0; i < numMoves; i++) {
 		int score;
-		Board b2;
-		b2 = board;
-		makeMove(&b2, moves[i]);
-		tableEntry* t = &transpositionTable[HASHKEY(b2.hash)];
-		if (HASENTRY(b2.hash)) {
+		makeMove(board, moves[i]);
+		tableEntry* t = &transpositionTable[HASHKEY(board->hash)];
+		if (HASENTRY(board->hash)) {
 			if (t->depth >= depthleft) {
 				//printf("yay\n");
 				score = t->value;
 			} else {
-				score = alphaBetaMax(b2, alpha, beta, depthleft - 1, &t->move);
+				score = alphaBetaMax(board, alpha, beta, depthleft - 1, &t->move);
 				t->value = score;
 				t->depth = depthleft;
 			}
 		} else {
-			score = alphaBetaMax(b2, alpha, beta, depthleft - 1, &t->move);
-			t->hash = b2.hash;
+			score = alphaBetaMax(board, alpha, beta, depthleft - 1, &t->move);
+			t->hash = board->hash;
 			t->value = score;
 			t->depth = depthleft;
 		}
+		
+		unmakeMove(board, moves[i]);
+		
 		//score = alphaBetaMax(b2, alpha, beta, depthleft - 1 );
 		if (score <= alpha) {
 			*nextMove = moves[i];
