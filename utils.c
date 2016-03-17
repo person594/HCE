@@ -208,7 +208,7 @@ void makeMove(Board* board, move mov) {
 		board->hash ^= CASTLEHASH(C_BK);
 	}
 	
-	clearSq(board, sq1);					//empty the destination square
+	clearSq(board, sq1);  //empty the destination square
 	
 	//move the piece, updating all aplicable bitboards.
 	board->bits[p] &= ~b0;
@@ -268,11 +268,11 @@ void makeMove(Board* board, move mov) {
 			}
 			board->castle &= (~mask);
 			if (sq1 - sq0 == 2){	//king side castling
-				makeMove(board, MOV(sq1+1, sq1-1, 0));
+				makeMove(board, MOV(sq1+1, sq1-1, EMPTY, EMPTY, 0));
 				board->ply--;
 				board->hash ^= WHITETURNHASH;
 			} else if (sq0 - sq1 == 2){  //queen side castling
-				makeMove(board, MOV(sq1-2, sq1+1, 0));
+				makeMove(board, MOV(sq1-2, sq1+1, EMPTY, EMPTY, 0));
 				board->ply--;
 				board->hash ^= WHITETURNHASH;
 			}
@@ -287,6 +287,12 @@ void makeMove(Board* board, move mov) {
 	
 	board->hash ^= PHASH(p, sq0);
 	board->hash ^= PHASH(p, sq1);
+}
+
+
+void unmakeMove(Board *board, move mov) {
+	
+	
 }
 
 int diagslide(bitboard occupied, int p0, int p1) {
@@ -670,34 +676,35 @@ int getGameStatus(Board board) {
 		b = board.bits[p];
 		while ((sq = popBit(&b)) != NO_SQUARE){
 			bitboard moves;
-			int m, move;
+			int m, cap;
 			moves = pieceMoves(board, p, sq);
 			while ((m = popBit(&moves)) != NO_SQUARE) {
 				Board b2;
 				int kingSq;
 				b2 = board;
+				cap = board.squares[m];
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
 					//king square can be obtained from the old board, as it won't change from a pawn move
 					kingSq = bsf(board.bits[WK + sd]);
-					makeMove(&b2, MOV(sq, m, WN));
+					makeMove(&b2, MOV(sq, m, cap, WN, 0));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, WB));
+					makeMove(&b2, MOV(sq, m, cap, WB, 0));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, WR));
+					makeMove(&b2, MOV(sq, m, cap, WR, 0));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq, m, WQ));
+				makeMove(&b2, MOV(sq, m, cap, WQ, 0));
 				kingSq = bsf(b2.bits[WK + sd]);
 				if (!sqAttacked(b2, kingSq, opponent)){
 					return status;
@@ -728,16 +735,20 @@ int getMoves(Board board, int* moves) {
 		p = sd + i;
 		b = board.bits[p];
 		while ((sq = popBit(&b)) != NO_SQUARE) {
-			int m;
+			int m, cap, ep = 0;
 			bitboard movebits = pieceMoves(board, p, sq);
 			while ((m = popBit(&movebits)) != NO_SQUARE) {
-				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
-					*moves++ = MOV(sq, m, WN);
-					*moves++ = MOV(sq, m, WB);
-					*moves++ = MOV(sq, m, WR);
+				cap = board.squares[m];
+				if ((p == WP || p == BP) && cap == EMPTY && sq%8 != m%8) { //en passant
+					cap = BP - sd;
+					ep = 1;
+				} else if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
+					*moves++ = MOV(sq, m, cap, WN, ep);
+					*moves++ = MOV(sq, m, cap, WB, ep);
+					*moves++ = MOV(sq, m, cap, WR, ep);
 					count += 3;
 				}
-				*moves++ = MOV(sq, m, WN);
+				*moves++ = MOV(sq, m, cap, WQ, ep);
 				count++;
 			}
 		}

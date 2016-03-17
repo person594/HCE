@@ -26,23 +26,29 @@ int perftTest(Board board, int depth){
 			bitboard moves;
 			moves = pieceMoves(board, p, sq0);
 			while (moves){
+				int cap, ep = 0;
 				sq1 = popBit(&moves);
 				b2 = board;
-				if ((p == WP && sq1/8 == 7) || (p == BP && sq1/8 == 0))	{	//pawn promotion
-					makeMove(&b2, MOV(sq0, sq1, WN + sd));
+				cap = board.squares[sq1];
+				if ((p == WP || p == BP) && cap == EMPTY && sq0 % 8 != sq1 % 8 ){  //en passant
+					ep = 1;
+					cap = BP - sd;
+				}
+				else if ((p == WP && sq1/8 == 7) || (p == BP && sq1/8 == 0))	{	//pawn promotion
+					makeMove(&b2, MOV(sq0, sq1, cap, WN + sd, 0));
 					sum += perftTest(b2, depth - 1);
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WB + sd));
+					makeMove(&b2, MOV(sq0, sq1, cap, WB + sd, 0));
 					sum += perftTest(b2, depth - 1);
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WR + sd));
+					makeMove(&b2, MOV(sq0, sq1, cap, WR + sd, 0));
 					sum += perftTest(b2, depth - 1);
 					
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq0, sq1, WQ + sd));
+				makeMove(&b2, MOV(sq0, sq1, cap, WQ + sd, 0));
 				sum += perftTest(b2, depth - 1);
 				
 				/*
@@ -69,36 +75,42 @@ int printMoves(Board board){
 			bitboard moves;
 			moves = pieceMoves(board, p, n);
 			while (moves){
+				int cap, ep = 0;
 				sq1 = popBit(&moves);
+				cap = board.squares[sq1];
+				if ((p == WP || p == BP) && cap == EMPTY && sq0 % 8 != sq1 % 8) { //en passant
+					cap = BP - sd;
+					ep = 1;
+				}
 				if ((p == WP && sq1/8 == 7) || (p == BP && sq1/8 == 0))	{	//pawn promotion
-					makeMove(&b2, MOV(sq0, sq1, WN));
+					makeMove(&b2, MOV(sq0, sq1, cap, WN, ep));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WB));
+					makeMove(&b2, MOV(sq0, sq1, cap, WB, ep));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WR));
+					makeMove(&b2, MOV(sq0, sq1, cap, WR, ep));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, WQ));
+					makeMove(&b2, MOV(sq0, sq1, cap, WQ, ep));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq0, sq1, 0));
+				makeMove(&b2, MOV(sq0, sq1, cap, EMPTY, ep));
 				if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
-						printf("%d: %d-%d\n", p, sq0, sq1);
-					}
+					printf("%d: %d-%d\n", p, sq0, sq1);
+				}
 				//printf("sum = %d\n", sum);
 			}
 		}

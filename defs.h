@@ -134,9 +134,11 @@ p: pawn promotion piece
 */
 typedef unsigned int move;
 #define FROM(mov) mov & 0x3f
-#define TO(mov) FROM(mov>>6)
-#define PROM(mov) (mov >> 12) //& 0x0f
-#define MOV(from, to, pawn) from|(to<<6)|(pawn<<12)
+#define TO(mov) ((mov>>6) & 0x3f)
+#define CAP(mov) ((mov >> 12)  & 0x0f)
+#define PROM(mov) ((mov >> 16) & 0x0f)
+#define EP(mov) ((mov >> 17) & 0x1)
+#define MOV(from, to, cap, pawn, ep) (from|(to<<6)|(cap << 12)|(pawn<<16)|(ep<<17))
 
 //hash table things:
 #define POLYGLOTPIECE(p) (2*((p)%6) + 1 - (p)/6)
