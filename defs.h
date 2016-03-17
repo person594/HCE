@@ -128,7 +128,7 @@ typedef struct {
 
 #define ABS(n) (n >= 0 ? n : -n)
 
-/* 00ee  eeee  ssss  pppp  cccc  tttt  ttff  ffff
+/* 0eee  eeee  ssss  pppp  cccc  tttt  ttff  ffff
 t: to
 f: from
 c: captured piece
@@ -142,7 +142,7 @@ typedef unsigned int move;
 #define CAP(mov) (((mov) >> 12)  & 0x0f)
 #define PROM(mov) (((mov) >> 16) & 0x0f)
 #define CAST(mov) (((mov) >> 20 ) & 0x0f)
-#define EP(mov) (((mov) >> 24) & 0x3f)
+#define EP(mov) (((mov) >> 24) & 0x7f)
 #define MOV(from, to, cap, prom, cast, ep) ((from)|((to)<<6)|((cap) << 12)|((prom)<<16)|((cast)<<20)|((ep)<<24))
 
 //hash table things:
