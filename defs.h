@@ -135,7 +135,7 @@ p: pawn promotion piece
 s: castling priviledges before move
 e: en passant square before move
 */
-typedef unsigned int move;
+
 #define FROM(mov) mov & 0x3f
 #define TO(mov) (((mov)>>6) & 0x3f)
 #define CAP(mov) (((mov) >> 12)  & 0x0f)
@@ -148,10 +148,10 @@ typedef unsigned int move;
 #define POLYGLOTPIECE(p) (2*((p)%6) + 1 - (p)/6)
 #define PHASH(p, sq) (hashvals[64*POLYGLOTPIECE(p) + sq])
 #define EPHASHRAW(sq) (hashvals[772+(sq)%8])
-#define EPHASH(board) ((board).enpas == NO_SQUARE ? 0ull : \
-                      (board).ply%2 ?      /*black to move*/ \
-                      ((board).bits[BP] & TRANS(0x5ull, (board).enpas%8 - 1, 3) ? EPHASHRAW((board).enpas) : 0ull) :\
-                      ((board).bits[WP] & TRANS(0x5ull, (board).enpas%8 - 1, 4) ? EPHASHRAW((board).enpas) : 0ull))
+#define EPHASH(board) ((board)->enpas == NO_SQUARE ? 0ull : \
+                      (board)->ply%2 ?      /*black to move*/ \
+                      ((board)->bits[BP] & TRANS(0x5ull, (board)->enpas%8 - 1, 3) ? EPHASHRAW((board)->enpas) : 0ull) :\
+                      ((board)->bits[WP] & TRANS(0x5ull, (board)->enpas%8 - 1, 4) ? EPHASHRAW((board)->enpas) : 0ull))
                       
 //note this only works when given a single castling flag, not a set of flags
 #define CASTLEHASH(flag) (hashvals[768 + (bsf(flag))])
@@ -163,11 +163,12 @@ typedef unsigned int move;
 
 int pos(bitboard);
 void printBitboard(bitboard);
-void printBoard(Board);
-void initBoard(Board*);
-void clearPos(Board*, int);
-void makeMove(Board*, move);
-int sqAttacked(Board, int, int);
+void printBoard(Board *);
+void initBoard(Board *);
+void clearPos(Board *, int);
+void makeMove(Board *, int);
+void unmakeMove(Board *, int);
+int sqAttacked(Board *, int, int);
 
 int popBit(bitboard*);
 int countBits(bitboard); 
@@ -175,32 +176,32 @@ int countBits(bitboard);
 int diagslide(bitboard, int, int);
 int orthslide(bitboard, int, int);
 
-int validateBoardState(Board board);
+int validateBoardState(Board *board);
 int compareBoards(Board *b1, Board *b2);
 int getPiece(char);
 int getPos(char, char);
-bitboard pieceMoves(Board, int, int);
+bitboard pieceMoves(Board *, int, int);
 
-int perftTest(Board, int);
-int printMoves(Board);
-void twoPlayerLoop(Board);
-void onePlayerLoop(Board);
-int getGameStatus(Board);
+int perftTest(Board *, int);
+int printMoves(Board *);
+void twoPlayerLoop(Board *);
+void onePlayerLoop(Board *);
+int getGameStatus(Board *);
 
-int getMoves(Board, int *);
+int getMoves(Board *, int *);
 int alphaBetaMax(Board *, int, int, int, int *);
 int alphaBetaMin(Board *, int, int, int, int *);
 int moveSearch(Board *, int, int*);
 
-int fromAlg(Board, char*);
-void toAlg(Board, int, char*);
+int fromAlg(Board *, char*);
+void toAlg(Board *, int, char*);
 char getSymbol(int);
 
-u64 getHashCode(Board);
+u64 getHashCode(Board *);
 void initHashTable();
 
 void genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock, int movenum);
-int getInputMove(Board board);
+int getInputMove(Board *board);
 
 int bsf(bitboard b);
 int bsr(bitboard b);

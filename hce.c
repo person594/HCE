@@ -46,18 +46,18 @@ int main(int argc, char* argv[]) {
   	genBoard(&board, argv[1], col, cast, ep, hc, fm);
   }
   //twoPlayerLoop(board);
-  onePlayerLoop(board);
+  onePlayerLoop(&board);
 }
 
 
-void twoPlayerLoop(Board board) {
+void twoPlayerLoop(Board *board) {
 	int move, sd, status = 0;    //0: game on, 1: white wins, 2: black wins, -1: stalemate
 	while (!status){
 		char input[21];
 		printf("\n");
 		printBoard(board);
 		printf("\n");
-		if (board.ply%2) {
+		if (board->ply%2) {
 			printf("Black's move:\n");
 		} else {
 			printf("White's move:\n");
@@ -78,8 +78,8 @@ void twoPlayerLoop(Board board) {
 			}
 			scanf("%20s", input);
 		}
-		sd = (board.ply%2)*6;
-		makeMove(&board, move);
+		sd = (board->ply%2)*6;
+		makeMove(board, move);
 		validateBoardState(board);
 		status = getGameStatus(board);
 	}
@@ -96,7 +96,7 @@ void twoPlayerLoop(Board board) {
 		}
 }
 
-void onePlayerLoop(Board board) {
+void onePlayerLoop(Board *board) {
 	int move, score, status = 0;		//0: game on, 1: white wins, 2: black wins, -1: stalemate
 	validateBoardState(board);
 	printf("\n");
@@ -104,16 +104,16 @@ void onePlayerLoop(Board board) {
 	printf("\n");
 	while (status!=1 && status != 2 && status != -1){
 		char input[21];
-		if (board.ply%2) {
+		if (board->ply%2) {
 			printf("Black's move:\n");
-			move = moveSearch(&board, SEARCH_DEPTH, &score);
+			move = moveSearch(board, SEARCH_DEPTH, &score);
 			toAlg(board, move, input);
 			printf("%s\n", input);
 		} else {
 			printf("White's move:\n");
 			move = getInputMove(board);
 		}
-		makeMove(&board, move);
+		makeMove(board, move);
 		validateBoardState(board);
 		status = getGameStatus(board);
 		printf("\n");

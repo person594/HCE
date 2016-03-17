@@ -4,16 +4,16 @@
 #include "defs.h"
 
 //returns -1 on bad syntax, -2 on an illegal move, and -3 on an ambiguous move
-int fromAlg(Board board, char* str) {
+int fromAlg(Board *board, char* str) {
 		int sd, p, prom = 0, move = -2, sq0, sq1;
 		char rank0 = 0, row0 = 0, rank, row, ch;
 		bitboard b;
 		
-		sd = (board.ply%2) * 6;
+		sd = (board->ply%2) * 6;
 		if (strstr(str, "O-O") == str) {	//str starts with O-O, some kind of castling
 			str += 3;
 			p = WK + sd;
-			rank = '1' + (board.ply%2)*7;
+			rank = '1' + (board->ply%2)*7;
 			if (strstr(str, "-O") == str) {				//O-O-O, queenside
 				str += 2;
 				row = 'c';
@@ -104,7 +104,7 @@ int fromAlg(Board board, char* str) {
 		
 		//printf("%c%c -> %c%c\n",row0, rank0, row, rank);
 		
-		b = board.bits[p];
+		b = board->bits[p];
 		while ((sq0 = popBit(&b)) != NO_SQUARE) {					//check all pieces of type p
 			if (pieceMoves(board, p, sq0) & BIT(sq1)) {			//if the current piece can move to the target square
 				if (rank0) {
@@ -118,11 +118,11 @@ int fromAlg(Board board, char* str) {
 				}
 				if (move == -2) {
 					int cap, ep = 0;
-					cap = board.squares[sq1];
+					cap = board->squares[sq1];
 					if ((p == WP || p == BP) && cap == EMPTY && sq0%8 != sq1%8) { //en passant
 						cap = BP - sd;
 					}
-					move = MOV(sq0, sq1, cap, prom, board.castle, board.enpas);
+					move = MOV(sq0, sq1, cap, prom, board->castle, board->enpas);
 				} else {
 					return -3;
 				}
@@ -130,9 +130,11 @@ int fromAlg(Board board, char* str) {
 		}
 		
 		if (move >= 0) {
-			Board b2 = board;
-			makeMove(&b2, move);
-			if (sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply%2))) {	//puts king in check
+			int attacked;
+			makeMove(board, move);
+			attacked = sqAttacked(board, bsf(board->bits[WK + sd]), WHITE + (board->ply%2));
+			unmakeMove(board, move);
+			if (attacked) {	//puts king in check
 				return -2;
 			}
 		}
@@ -141,7 +143,7 @@ int fromAlg(Board board, char* str) {
 
 //given the post-move board state, adds either a check (+) or checkmate (#) symbol as applicable, then
 //appends a null terminator.
-void terminateMoveStr(Board board, char* str) {
+void terminateMoveStr(Board *board, char* str) {
 	int status = getGameStatus(board);
 	if (status == 1 || status == 2) {
 		*str++ = '#';
@@ -151,28 +153,29 @@ void terminateMoveStr(Board board, char* str) {
 	*str = 0;
 }
 
-void toAlg(Board board, int move, char* str) {
+void toAlg(Board *board, int move, char* str) {
 	int to, from, prom, p, sq0, flag, sd;
 	bitboard b;
-	Board b2;
-	b2 = board;
-	makeMove(&b2, move);
-	sd = 6*(board.ply%2);
+	sd = 6*(board->ply%2);
 	to = TO(move);
 	from = FROM(move);
 	prom = PROM(move);
-	if (from == bsf(board.bits[WK + sd])) {		//if the moving piece is a king, possible castling notation
+	if (from == bsf(board->bits[WK + sd])) {		//if the moving piece is a king, possible castling notation
 		if (to - from == 2) {
 			strcpy(str, "O-O");
-			terminateMoveStr(b2, str + 3);
+			makeMove(board, move);
+			terminateMoveStr(board, str + 3);
+			unmakeMove(board, move);
 			return;
 		} if (from - to == 2) {
 			strcpy(str, "O-O-O");
-			terminateMoveStr(b2, str + 5);
+			makeMove(board, move);
+			terminateMoveStr(board, str + 5);
+			unmakeMove(board, move);
 			return;
 		}
 	}
-	for (p = WP; p <= BK && !(board.bits[p] & BIT(from)); p++);
+	for (p = WP; p <= BK && !(board->bits[p] & BIT(from)); p++);
 	switch (p) {
 		case WN:
 		case BN:
@@ -201,7 +204,7 @@ void toAlg(Board board, int move, char* str) {
 		}
 	} else {
 		flag = 0;	//whether two pieces can move to the same square.  1: shared row, 2: shared rank
-		b = board.bits[p];
+		b = board->bits[p];
 		while ((sq0 = popBit(&b)) != NO_SQUARE) {	//for each piece of the piece type being moved
 			if ((pieceMoves(board, p, sq0) & BIT(to)) && sq0 != from) {
 				if (sq0 % 8 == from) {
@@ -218,7 +221,7 @@ void toAlg(Board board, int move, char* str) {
 			}
 		}
 	}
-	if (board.bits[OCCUPIED] & BIT(to)){
+	if (board->bits[OCCUPIED] & BIT(to)){
 		*str++ = 'x';
 	}
 	*str++ = 'a' + (to % 8);
@@ -248,7 +251,9 @@ void toAlg(Board board, int move, char* str) {
 				break;
 		}
 	}
-	terminateMoveStr(b2, str);
+	makeMove(board, move);
+	terminateMoveStr(board, str);
+	unmakeMove(board, move);
 }
 
 char getSymbol(int p) {
@@ -316,7 +321,7 @@ int getPiece(char c){
 }
 
 //polls player for a move, and returns the resulting move.  Also accepts and responds to non-move commands and input, but only returns upon receiving a valid move.
-int getInputMove(Board board) {
+int getInputMove(Board *board) {
 	#define MAXTOKENS 3
 	while(1) {
 		char str[21];

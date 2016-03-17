@@ -52,12 +52,12 @@ int loadOpeningBook(char *fileName) {
 */
 
 //This function is not fast.  It should be used to generate an initial hashcode for a new board.  If modifying an existing board, the board's hashcode should be modified on the fly.
-u64 getHashCode(Board board) {
+u64 getHashCode(Board *board) {
 	u64 hash = 0ull;
 	int sq;
 	for (sq = 0; sq < 64; sq++) {
-		if (board.squares[sq] != EMPTY) {
-			hash ^= PHASH(board.squares[sq], sq);
+		if (board->squares[sq] != EMPTY) {
+			hash ^= PHASH(board->squares[sq], sq);
 		}
 	}
 	//en passant
@@ -65,12 +65,12 @@ u64 getHashCode(Board board) {
 	//castling
 	int castle;
 	for (castle = 8; castle; castle >>= 1) {
-		if (castle & board.castle) {
+		if (castle & board->castle) {
 			hash ^= CASTLEHASH(castle);
 		}
 	}
 	//ply
-	if (board.ply%2 == 0) {
+	if (board->ply%2 == 0) {
 		hash ^= WHITETURNHASH;
 	}
 	return hash;
