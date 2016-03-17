@@ -123,7 +123,7 @@ int fromAlg(Board board, char* str) {
 						cap = BP - sd;
 						ep = 1;
 					}
-					move = MOV(sq0, sq1, cap, prom, ep);
+					move = MOV(sq0, sq1, cap, prom, board.castle, ep);
 				} else {
 					return -3;
 				}

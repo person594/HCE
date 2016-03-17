@@ -25,6 +25,7 @@ enum {
 	NO_SQUARE = 64
 };
 
+
 #define R_1 0x00000000000000FFull
 #define R_2 0x000000000000FF00ull
 #define R_3 0x0000000000FF0000ull
@@ -127,18 +128,22 @@ typedef struct {
 
 #define ABS(n) (n >= 0 ? n : -n)
 
-/* 0000	0000	0000	0000	pppp	tttt	ttff	ffff
+/* 0000  000e  ssss  pppp  cccc  tttt  ttff  ffff
 t: to
 f: from
+c: captured piece
 p: pawn promotion piece
+s: castling priviledges before move
+e: was the move an en passant capture
 */
 typedef unsigned int move;
 #define FROM(mov) mov & 0x3f
-#define TO(mov) ((mov>>6) & 0x3f)
-#define CAP(mov) ((mov >> 12)  & 0x0f)
-#define PROM(mov) ((mov >> 16) & 0x0f)
-#define EP(mov) ((mov >> 17) & 0x1)
-#define MOV(from, to, cap, pawn, ep) (from|(to<<6)|(cap << 12)|(pawn<<16)|(ep<<17))
+#define TO(mov) (((mov)>>6) & 0x3f)
+#define CAP(mov) (((mov) >> 12)  & 0x0f)
+#define PROM(mov) (((mov) >> 16) & 0x0f)
+#define CAST(mov) (((mov) >> 20 ) & 0x0f)
+#define EP(mov) (((mov) >> 24) & 0x1)
+#define MOV(from, to, cap, prom, cast, ep) ((from)|((to)<<6)|((cap) << 12)|((prom)<<16)|((cast)<<20)|((ep)<<24))
 
 //hash table things:
 #define POLYGLOTPIECE(p) (2*((p)%6) + 1 - (p)/6)

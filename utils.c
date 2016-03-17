@@ -184,7 +184,7 @@ void clearSq(Board* board, int sq){
 
 void makeMove(Board* board, move mov) {
 	Board orig = *board;
-	int i, p, sq0, sq1, prom, enpas = NO_SQUARE;
+	int i, p, sq0, sq1, prom, cast, enpas = NO_SQUARE;
 	sq0 = FROM(mov);
 	sq1 = TO(mov);
 	prom = PROM(mov) + 6*(board->ply%2);
@@ -226,9 +226,9 @@ void makeMove(Board* board, move mov) {
 	switch (p) {	//special logic for special pieces
 		int mask;
 		case WP:
-			if (sq1 - sq0 == 16){		//double ahead, set enpassant
+			if (sq1 - sq0 == 16){    //double ahead, set enpassant
 				enpas = sq0+8;
-			} else if (sq1  == board->enpas){		//enpassant capture
+			} else if (sq1  == board->enpas){  //enpassant capture
 				clearSq(board, board->enpas - 8);
 			} else if (sq1/8 == 7){	//pawn promotion
 				//clearSq(board, sq1);
@@ -268,11 +268,11 @@ void makeMove(Board* board, move mov) {
 			}
 			board->castle &= (~mask);
 			if (sq1 - sq0 == 2){	//king side castling
-				makeMove(board, MOV(sq1+1, sq1-1, EMPTY, EMPTY, 0));
+				makeMove(board, MOV(sq1+1, sq1-1, EMPTY, EMPTY, board->castle, 0));
 				board->ply--;
 				board->hash ^= WHITETURNHASH;
 			} else if (sq0 - sq1 == 2){  //queen side castling
-				makeMove(board, MOV(sq1-2, sq1+1, EMPTY, EMPTY, 0));
+				makeMove(board, MOV(sq1-2, sq1+1, EMPTY, EMPTY, board->castle, 0));
 				board->ply--;
 				board->hash ^= WHITETURNHASH;
 			}
@@ -291,6 +291,20 @@ void makeMove(Board* board, move mov) {
 
 
 void unmakeMove(Board *board, move mov) {
+	int sq0, sq1, cap, prom, ep, cap_sq, p;
+	sq0 = FROM(mov);
+	sq1 = TO(mov);
+	cap = CAP(mov);
+	prom = PROM(mov);
+	ep = EP(mov);
+	p = board->squares[sq1];
+	
+	if (ep) {
+		cap_sq = (sq0 & 0x38) + (sq1%8);
+	} else{
+		cap_sq = sq1;
+	}
+	clearSq(board, sq1);
 	
 	
 }
@@ -663,48 +677,54 @@ int getPos(char row, char rank){
 //4: black in check
 //-1: Stalemate
 int getGameStatus(Board board) {
-	int i, sd, opponent, status = 0;
+	int i, sd, opponent, cast, status = 0;
 	opponent = BLACK - (board.ply%2);
 	sd = 6*(board.ply%2);
 	if (sqAttacked(board, bsf(board.bits[WK + sd]), opponent)) {	//no moves, king in check.  checkmate
 		status = 3 +  (board.ply%2);
 	}
+	cast = board.castle;
 	for (i = WP; i <= WK; i++) {
-		int p, n, sq;
+		int p, n, sq, cast;
 		bitboard b;
 		p = sd + i;
 		b = board.bits[p];
+		cast = board.castle;
 		while ((sq = popBit(&b)) != NO_SQUARE){
 			bitboard moves;
 			int m, cap;
 			moves = pieceMoves(board, p, sq);
 			while ((m = popBit(&moves)) != NO_SQUARE) {
 				Board b2;
-				int kingSq;
+				int kingSq, ep = 0;
 				b2 = board;
 				cap = board.squares[m];
-				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
+				if ((p == WP || p == BP) && cap == EMPTY && m%8 != sq%8) { //en passant
+					ep = 1;
+					cap = BP - sd;
+				}
+				else if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
 					//king square can be obtained from the old board, as it won't change from a pawn move
 					kingSq = bsf(board.bits[WK + sd]);
-					makeMove(&b2, MOV(sq, m, cap, WN, 0));
+					makeMove(&b2, MOV(sq, m, cap, WN, cast, ep));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, cap, WB, 0));
+					makeMove(&b2, MOV(sq, m, cap, WB, cast, ep));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, cap, WR, 0));
+					makeMove(&b2, MOV(sq, m, cap, WR, cast, ep));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq, m, cap, WQ, 0));
+				makeMove(&b2, MOV(sq, m, cap, WQ, cast, ep));
 				kingSq = bsf(b2.bits[WK + sd]);
 				if (!sqAttacked(b2, kingSq, opponent)){
 					return status;
@@ -712,7 +732,7 @@ int getGameStatus(Board board) {
 			}
 		}
 	}
-	if (status) {	//no moves, king in check.  checkmate
+	if (status) { //no moves, king in check.  checkmate
 		return 2 - (board.ply%2);
 	}
 	return -1;
@@ -720,7 +740,7 @@ int getGameStatus(Board board) {
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Board board, int* moves) {
-	int i, n, sd, count = 0;
+	int i, n, sd, count = 0, cast;
 	sd = 6*(board.ply%2);
 	if (HASENTRY(board.hash)) {	//if we found a previous good response to this position, try it first.  note it will be in the list twice. yolo.
 		*moves = transpositionTable[HASHKEY(board.hash)].move;
@@ -729,6 +749,7 @@ int getMoves(Board board, int* moves) {
 			count++;
 		}
 	}
+	cast = board.castle;
 	for (i = WK; i >= WP; i--) {
 		int p, sq;
 		bitboard b;
@@ -743,12 +764,12 @@ int getMoves(Board board, int* moves) {
 					cap = BP - sd;
 					ep = 1;
 				} else if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
-					*moves++ = MOV(sq, m, cap, WN, ep);
-					*moves++ = MOV(sq, m, cap, WB, ep);
-					*moves++ = MOV(sq, m, cap, WR, ep);
+					*moves++ = MOV(sq, m, cap, WN, cast, ep);
+					*moves++ = MOV(sq, m, cap, WB, cast, ep);
+					*moves++ = MOV(sq, m, cap, WR, cast, ep);
 					count += 3;
 				}
-				*moves++ = MOV(sq, m, cap, WQ, ep);
+				*moves++ = MOV(sq, m, cap, WQ, cast, ep);
 				count++;
 			}
 		}
@@ -759,7 +780,7 @@ int getMoves(Board board, int* moves) {
 int moveSearch(Board board, int depth, int* score) {
 	int numMoves, moves[120], sign, move = -1, i, nextMove;
 	numMoves = getMoves(board, moves);
-	if (board.ply % 2) {	//black to move, minimize
+	if (board.ply % 2) {  //black to move, minimize
 		int min = VAL[WK];
 		for (i = 0; i < numMoves; i++) {
 			Board b2;
@@ -772,7 +793,7 @@ int moveSearch(Board board, int depth, int* score) {
 				move = moves[i];
 			}
 		}
-	} else {							//white to move, maximize
+	} else {  //white to move, maximize
 		int max = VAL[BK];
 		for (i = 0; i < numMoves; i++) {
 			Board b2;

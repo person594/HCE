@@ -3,6 +3,8 @@
 #include "defs.h"
 
 
+#define SEARCH_DEPTH 6
+
 int main(int argc, char* argv[]) {
   Board board;
   int n;
@@ -49,7 +51,7 @@ int main(int argc, char* argv[]) {
 
 
 void twoPlayerLoop(Board board) {
-	int move, sd, status = 0;		//0: game on, 1: white wins, 2: black wins, -1: stalemate
+	int move, sd, status = 0;    //0: game on, 1: white wins, 2: black wins, -1: stalemate
 	while (!status){
 		char input[21];
 		printf("\n");
@@ -104,7 +106,7 @@ void onePlayerLoop(Board board) {
 		char input[21];
 		if (board.ply%2) {
 			printf("Black's move:\n");
-			move = moveSearch(board, 6, &score);
+			move = moveSearch(board, SEARCH_DEPTH, &score);
 			toAlg(board, move, input);
 			printf("%s\n", input);
 		} else {
