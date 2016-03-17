@@ -128,13 +128,13 @@ typedef struct {
 
 #define ABS(n) (n >= 0 ? n : -n)
 
-/* 0000  000e  ssss  pppp  cccc  tttt  ttff  ffff
+/* 00ee  eeee  ssss  pppp  cccc  tttt  ttff  ffff
 t: to
 f: from
 c: captured piece
 p: pawn promotion piece
 s: castling priviledges before move
-e: was the move an en passant capture
+e: en passant square before move
 */
 typedef unsigned int move;
 #define FROM(mov) mov & 0x3f
@@ -142,7 +142,7 @@ typedef unsigned int move;
 #define CAP(mov) (((mov) >> 12)  & 0x0f)
 #define PROM(mov) (((mov) >> 16) & 0x0f)
 #define CAST(mov) (((mov) >> 20 ) & 0x0f)
-#define EP(mov) (((mov) >> 24) & 0x1)
+#define EP(mov) (((mov) >> 24) & 0x3f)
 #define MOV(from, to, cap, prom, cast, ep) ((from)|((to)<<6)|((cap) << 12)|((prom)<<16)|((cast)<<20)|((ep)<<24))
 
 //hash table things:

@@ -121,9 +121,8 @@ int fromAlg(Board board, char* str) {
 					cap = board.squares[sq1];
 					if ((p == WP || p == BP) && cap == EMPTY && sq0%8 != sq1%8) { //en passant
 						cap = BP - sd;
-						ep = 1;
 					}
-					move = MOV(sq0, sq1, cap, prom, board.castle, ep);
+					move = MOV(sq0, sq1, cap, prom, board.castle, board.enpas);
 				} else {
 					return -3;
 				}

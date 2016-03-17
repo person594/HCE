@@ -26,29 +26,28 @@ int perftTest(Board board, int depth){
 			bitboard moves;
 			moves = pieceMoves(board, p, sq0);
 			while (moves){
-				int cap, ep = 0;
+				int cap;
 				sq1 = popBit(&moves);
 				b2 = board;
 				cap = board.squares[sq1];
 				if ((p == WP || p == BP) && cap == EMPTY && sq0 % 8 != sq1 % 8 ){  //en passant
-					ep = 1;
 					cap = BP - sd;
 				}
 				else if ((p == WP && sq1/8 == 7) || (p == BP && sq1/8 == 0))	{	//pawn promotion
-					makeMove(&b2, MOV(sq0, sq1, cap, WN + sd, board.castle, 0));
+					makeMove(&b2, MOV(sq0, sq1, cap, WN + sd, board.castle, board.enpas));
 					sum += perftTest(b2, depth - 1);
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, cap, WB + sd, board.castle, 0));
+					makeMove(&b2, MOV(sq0, sq1, cap, WB + sd, board.castle, board.enpas));
 					sum += perftTest(b2, depth - 1);
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, cap, WR + sd, board.castle, 0));
+					makeMove(&b2, MOV(sq0, sq1, cap, WR + sd, board.castle, board.enpas));
 					sum += perftTest(b2, depth - 1);
 					
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq0, sq1, cap, WQ + sd, board.castle, 0));
+				makeMove(&b2, MOV(sq0, sq1, cap, WQ + sd, board.castle, board.enpas));
 				sum += perftTest(b2, depth - 1);
 				
 				/*
@@ -75,39 +74,38 @@ int printMoves(Board board){
 			bitboard moves;
 			moves = pieceMoves(board, p, n);
 			while (moves){
-				int cap, ep = 0;
+				int cap;
 				sq1 = popBit(&moves);
 				cap = board.squares[sq1];
 				if ((p == WP || p == BP) && cap == EMPTY && sq0 % 8 != sq1 % 8) { //en passant
 					cap = BP - sd;
-					ep = 1;
 				}
 				if ((p == WP && sq1/8 == 7) || (p == BP && sq1/8 == 0))	{	//pawn promotion
-					makeMove(&b2, MOV(sq0, sq1, cap, WN, board.castle, ep));
+					makeMove(&b2, MOV(sq0, sq1, cap, WN, board.castle, board.enpas));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, cap, WB, board.castle, ep));
+					makeMove(&b2, MOV(sq0, sq1, cap, WB, board.castle, board.enpas));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, cap, WR, board.castle, ep));
+					makeMove(&b2, MOV(sq0, sq1, cap, WR, board.castle, board.enpas));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq0, sq1, cap, WQ, board.castle, ep));
+					makeMove(&b2, MOV(sq0, sq1, cap, WQ, board.castle, board.enpas));
 					if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq0, sq1, cap, EMPTY, board.castle, ep));
+				makeMove(&b2, MOV(sq0, sq1, cap, EMPTY, board.castle, board.enpas));
 				if (!sqAttacked(b2, bsf(b2.bits[WK + sd]), WHITE + (b2.ply % 2))){
 					printf("%d: %d-%d\n", p, sq0, sq1);
 				}

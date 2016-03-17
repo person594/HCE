@@ -182,12 +182,36 @@ void clearSq(Board* board, int sq){
 	}
 }
 
+
+void setSq(Board *board, int sq, int p) {
+	int p0;
+	bitboard b;
+	b = BIT(sq);
+	p0 = board->squares[sq];
+	if (p == p0) return;
+	
+	board->bits[p0] &= ~b;
+	board->bits[p] |= b;
+	board->bits[COLOR[p0]] &= ~b;
+	board->bits[COLOR[p]] |= b;
+	board->bits[OCCUPIED] =  ~(board->bits[EMPTY]);
+	board->score +=VAL[p] - VAL[p0];
+	board->squares[sq] = p;
+	if (p0 <= BK) {
+		board->hash ^= PHASH(p0, sq);
+	}
+	if (p <= BK) {
+		board->hash ^= PHASH(p, sq);
+	}
+}
+
 void makeMove(Board* board, move mov) {
 	Board orig = *board;
-	int i, p, sq0, sq1, prom, cast, enpas = NO_SQUARE;
+	int i, p, sq0, sq1, sd, prom, cast, enpas = NO_SQUARE;
 	sq0 = FROM(mov);
 	sq1 = TO(mov);
-	prom = PROM(mov) + 6*(board->ply%2);
+	sd = 6*(board->ply%2);
+	prom = PROM(mov) + sd;
 	bitboard b0, b1;
 	b0 = BIT(sq0);
 	b1 = BIT(sq1);
@@ -208,20 +232,8 @@ void makeMove(Board* board, move mov) {
 		board->hash ^= CASTLEHASH(C_BK);
 	}
 	
-	clearSq(board, sq1);  //empty the destination square
-	
-	//move the piece, updating all aplicable bitboards.
-	board->bits[p] &= ~b0;
-	board->bits[COLOR[p]] &= ~b0;
-	board->bits[OCCUPIED] &= ~b0;
-	board->bits[EMPTY] |= b0;
-	board->squares[sq0] = EMPTY;
-	
-	board->bits[p] |= b1;
-	board->bits[COLOR[p]] |= b1;
-	board->bits[OCCUPIED] |= b1;
-	board->bits[EMPTY] &= ~b1;
-	board->squares[sq1] = p; 
+	clearSq(board, sq0);
+	setSq(board, sq1, p);
 	
 	switch (p) {	//special logic for special pieces
 		int mask;
@@ -231,12 +243,7 @@ void makeMove(Board* board, move mov) {
 			} else if (sq1  == board->enpas){  //enpassant capture
 				clearSq(board, board->enpas - 8);
 			} else if (sq1/8 == 7){	//pawn promotion
-				//clearSq(board, sq1);
-				board->bits[p] &= ~b1;
-				board->bits[prom] |= b1;
-				board->score += VAL[prom] - VAL[WP];
-				board->squares[sq1] = prom;
-				board->hash ^= PHASH(p, sq1) ^ PHASH(prom, sq1);
+				setSq(board, sq1, prom);
 			}
 			break;
 		case BP:
@@ -246,11 +253,7 @@ void makeMove(Board* board, move mov) {
 				clearSq(board, board->enpas + 8);
 			} else if (sq1/8 == 0){	//pawn promotion
 				//clearSq(board, sq1);
-				board->bits[p] &= ~b1;
-				board->bits[prom] |= b1;
-				board->score += VAL[prom] - VAL[BP];
-				board->squares[sq1] = prom;
-				board->hash ^= PHASH(p, sq1) ^ PHASH(prom, sq1);
+				setSq(board, sq1, prom);
 			}
 			break;
 			
@@ -268,13 +271,11 @@ void makeMove(Board* board, move mov) {
 			}
 			board->castle &= (~mask);
 			if (sq1 - sq0 == 2){	//king side castling
-				makeMove(board, MOV(sq1+1, sq1-1, EMPTY, EMPTY, board->castle, 0));
-				board->ply--;
-				board->hash ^= WHITETURNHASH;
+				clearSq(board, sq1+1);
+				setSq(board, sq1-1, WR + sd);
 			} else if (sq0 - sq1 == 2){  //queen side castling
-				makeMove(board, MOV(sq1-2, sq1+1, EMPTY, EMPTY, board->castle, 0));
-				board->ply--;
-				board->hash ^= WHITETURNHASH;
+				clearSq(board, sq1-2);
+				setSq(board, sq1+1, WR + sd);
 			}
 			
 	}
@@ -285,28 +286,36 @@ void makeMove(Board* board, move mov) {
 	board->ephash = EPHASH(*board);	//calculate/store new ep has
 	board->hash ^= board->ephash;   //apply new ep hash
 	
-	board->hash ^= PHASH(p, sq0);
-	board->hash ^= PHASH(p, sq1);
+	//board->hash ^= PHASH(p, sq0);
+	//board->hash ^= PHASH(p, sq1);
 }
 
 
 void unmakeMove(Board *board, move mov) {
-	int sq0, sq1, cap, prom, ep, cap_sq, p;
+	int sq0, sq1, cap, prom, enpas, capSq, p;
 	sq0 = FROM(mov);
 	sq1 = TO(mov);
 	cap = CAP(mov);
 	prom = PROM(mov);
-	ep = EP(mov);
+	enpas = EP(mov);
 	p = board->squares[sq1];
-	
-	if (ep) {
-		cap_sq = (sq0 & 0x38) + (sq1%8);
-	} else{
-		cap_sq = sq1;
+	capSq = sq1;
+	if (enpas != NO_SQUARE) {
+		if (sq1 == enpas && (p == WP || p == BP)) {
+			capSq = (sq0 & 0x38) | (sq1 & 0x07); // same file as sq1, same rank as sq0
+		}
 	}
+	board->castle = CAST(mov);
 	clearSq(board, sq1);
+	setSq(board, sq0, p);
+	setSq(board, capSq, cap);
 	
-	
+	board->hash ^= board->ephash;
+	board->ply--;
+	board->hash ^= WHITETURNHASH;
+	board->enpas = enpas;
+	board->ephash = EPHASH(*board);
+	board->hash ^= board->ephash;
 }
 
 int diagslide(bitboard occupied, int p0, int p1) {
@@ -696,35 +705,34 @@ int getGameStatus(Board board) {
 			moves = pieceMoves(board, p, sq);
 			while ((m = popBit(&moves)) != NO_SQUARE) {
 				Board b2;
-				int kingSq, ep = 0;
+				int kingSq;
 				b2 = board;
 				cap = board.squares[m];
 				if ((p == WP || p == BP) && cap == EMPTY && m%8 != sq%8) { //en passant
-					ep = 1;
 					cap = BP - sd;
 				}
 				else if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
 					//king square can be obtained from the old board, as it won't change from a pawn move
 					kingSq = bsf(board.bits[WK + sd]);
-					makeMove(&b2, MOV(sq, m, cap, WN, cast, ep));
+					makeMove(&b2, MOV(sq, m, cap, WN, cast, board.enpas));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, cap, WB, cast, ep));
+					makeMove(&b2, MOV(sq, m, cap, WB, cast, board.enpas));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 					
 					b2 = board;
-					makeMove(&b2, MOV(sq, m, cap, WR, cast, ep));
+					makeMove(&b2, MOV(sq, m, cap, WR, cast, board.enpas));
 					if (!sqAttacked(b2, kingSq, opponent)){
 						return status;
 					}
 				}
 				b2 = board;
-				makeMove(&b2, MOV(sq, m, cap, WQ, cast, ep));
+				makeMove(&b2, MOV(sq, m, cap, WQ, cast, board.enpas));
 				kingSq = bsf(b2.bits[WK + sd]);
 				if (!sqAttacked(b2, kingSq, opponent)){
 					return status;
@@ -756,20 +764,19 @@ int getMoves(Board board, int* moves) {
 		p = sd + i;
 		b = board.bits[p];
 		while ((sq = popBit(&b)) != NO_SQUARE) {
-			int m, cap, ep = 0;
+			int m, cap;
 			bitboard movebits = pieceMoves(board, p, sq);
 			while ((m = popBit(&movebits)) != NO_SQUARE) {
 				cap = board.squares[m];
 				if ((p == WP || p == BP) && cap == EMPTY && sq%8 != m%8) { //en passant
 					cap = BP - sd;
-					ep = 1;
 				} else if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
-					*moves++ = MOV(sq, m, cap, WN, cast, ep);
-					*moves++ = MOV(sq, m, cap, WB, cast, ep);
-					*moves++ = MOV(sq, m, cap, WR, cast, ep);
+					*moves++ = MOV(sq, m, cap, WN, cast, board.enpas);
+					*moves++ = MOV(sq, m, cap, WB, cast, board.enpas);
+					*moves++ = MOV(sq, m, cap, WR, cast, board.enpas);
 					count += 3;
 				}
-				*moves++ = MOV(sq, m, cap, WQ, cast, ep);
+				*moves++ = MOV(sq, m, cap, WQ, cast, board.enpas);
 				count++;
 			}
 		}
