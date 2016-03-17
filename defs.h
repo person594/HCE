@@ -177,6 +177,7 @@ int diagslide(bitboard, int, int);
 int orthslide(bitboard, int, int);
 
 int validateBoardState(Board board);
+int compareBoards(Board *b1, Board *b2);
 int getPiece(char);
 int getPos(char, char);
 bitboard pieceMoves(Board, int, int);

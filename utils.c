@@ -671,6 +671,55 @@ int validateBoardState(Board board) {
 	return 1;
 }
 
+int compareBoards(Board *b1, Board *b2) {
+	int p, sq;
+	for (p = 0; p < 15; ++p) {
+		if (b1->bits[p] != b2->bits[p]) {
+			printf("Bitboard mismatch for piece %d\n");
+			printBitboard(b1->bits[p]);
+			printf("\n");
+			printBitboard(b2->bits[p]);
+			printf("\n");
+			return 0;
+		}
+	}
+	if (b1->ply != b2->ply) {
+		printf("Ply mismatch\n%d\n%d\n", b1->ply, b2->ply);
+		return 0;
+	}
+	
+	if (b1->enpas != b2->enpas) {
+		printf("En passant square mismatch\n%d\n%d\n", b1->enpas, b2->enpas);
+		return 0;
+	}
+	
+	if (b1->castle != b2->castle) {
+		printf("Castling rights mismatch\n%x\n%x\n", b1->castle, b2->castle);
+		return 0;
+	}
+  if (b1->score != b2->score) {
+		printf("Score mismatch\n%d\n%d\n", b1->score, b2->score);
+		return 0;
+	}
+	for (sq = 0; sq < 64; ++sq) {
+		if (b1->squares[sq] != b2->squares[sq]) {
+			printf("Square mismatch\n");
+			printBoard(*b1);
+			printBoard(*b2);
+			return 0;
+		}
+	}
+	if (b1->hash != b2->hash) {
+		printf("Hash mismatch\n%x\n%x\n", b1->hash, b2->hash);
+		return 0;
+	}
+	if (b1->ephash != b2->ephash) {
+		printf("En passant hash mismatch\n%x\n%x\n", b1->hash, b2->hash);
+		return 0;
+	}
+	return 1;
+}
+
 int getPos(char row, char rank){
 	row |= 0x20;	//to lower case
 	if (row < 'a' || row > 'h' || rank < '1' || rank > '8'){
@@ -818,7 +867,7 @@ int moveSearch(Board *board, int depth, int* score) {
 	return move;
 }
 
-inline int eval(Board *board) {
+int eval(Board *board) {
 	int pointsPerCenter = 35;
 	return board->score + pointsPerCenter * (countBits(board->bits[WHITE] & CENTER) - countBits(board->bits[BLACK] & CENTER));
 }
@@ -874,6 +923,8 @@ int alphaBetaMin(Board *board, int alpha, int beta, int depthleft, int* nextMove
 	numMoves = getMoves(*board, moves);
 	for (i = 0; i < numMoves; i++) {
 		int score;
+		Board b2;
+		b2 = *board;
 		makeMove(board, moves[i]);
 		tableEntry* t = &transpositionTable[HASHKEY(board->hash)];
 		if (HASENTRY(board->hash)) {
@@ -893,6 +944,7 @@ int alphaBetaMin(Board *board, int alpha, int beta, int depthleft, int* nextMove
 		}
 		
 		unmakeMove(board, moves[i]);
+		compareBoards(board, &b2);
 		
 		//score = alphaBetaMax(b2, alpha, beta, depthleft - 1 );
 		if (score <= alpha) {
