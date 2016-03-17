@@ -134,7 +134,7 @@ void initBoard(Board* board){
 }
 
 //generates a board given Forsyth-Edwards Notation
-genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock, int movenum){
+void genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock, int movenum){
 	int i, r = 7, c = 0;
 	clearBoard(board);
 	board->ply = 2*(movenum-1) + (active == BLACK);

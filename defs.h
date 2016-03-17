@@ -193,3 +193,11 @@ char getSymbol(int);
 
 u64 getHashCode(Board);
 void initHashTable();
+
+void genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock, int movenum);
+int getInputMove(Board board);
+
+int bsf(bitboard b);
+int bsr(bitboard b);
+int sf(bitboard b);
+int sr(bitboard b);
