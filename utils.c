@@ -292,23 +292,38 @@ void makeMove(Board* board, move mov) {
 
 
 void unmakeMove(Board *board, move mov) {
-	int sq0, sq1, cap, prom, enpas, capSq, p;
+	int sq0, sq1, cap, prom, enpas, capSq, p, cast;
+	bitboard diff;
 	sq0 = FROM(mov);
 	sq1 = TO(mov);
 	cap = CAP(mov);
 	prom = PROM(mov);
 	enpas = EP(mov);
 	p = board->squares[sq1];
+	cast = CAST(mov);
 	capSq = sq1;
 	if (enpas != NO_SQUARE) {
 		if (sq1 == enpas && (p == WP || p == BP)) {
 			capSq = (sq0 & 0x38) | (sq1 & 0x07); // same file as sq1, same rank as sq0
 		}
 	}
-	board->castle = CAST(mov);
+	diff = board->castle ^ cast;
+	while (diff) {
+		board->hash ^= CASTLEHASH(diff);
+		popBit(&diff);
+	}
+	board->castle = cast;
 	clearSq(board, sq1);
 	setSq(board, sq0, p);
 	setSq(board, capSq, cap);
+	if ((p == WK || p == BK) && (sq0 - sq1 == 2 || sq0 - sq1 == -2)){ //castling: move the rook back
+		clearSq(board, (sq0 + sq1) / 2);
+		if (sq1 > sq0) { //king side
+			setSq(board, sq1 + 1, p - 2);
+		} else { // queen side
+			setSq(board, sq1 - 2, p - 2);
+		}
+	}
 	
 	board->hash ^= board->ephash;
 	board->ply--;
@@ -675,7 +690,7 @@ int compareBoards(Board *b1, Board *b2) {
 	int p, sq;
 	for (p = 0; p < 15; ++p) {
 		if (b1->bits[p] != b2->bits[p]) {
-			printf("Bitboard mismatch for piece %d\n");
+			printf("Bitboard mismatch for piece %d\n", p);
 			printBitboard(b1->bits[p]);
 			printf("\n");
 			printBitboard(b2->bits[p]);
@@ -923,8 +938,6 @@ int alphaBetaMin(Board *board, int alpha, int beta, int depthleft, int* nextMove
 	numMoves = getMoves(*board, moves);
 	for (i = 0; i < numMoves; i++) {
 		int score;
-		Board b2;
-		b2 = *board;
 		makeMove(board, moves[i]);
 		tableEntry* t = &transpositionTable[HASHKEY(board->hash)];
 		if (HASENTRY(board->hash)) {
@@ -944,7 +957,6 @@ int alphaBetaMin(Board *board, int alpha, int beta, int depthleft, int* nextMove
 		}
 		
 		unmakeMove(board, moves[i]);
-		compareBoards(board, &b2);
 		
 		//score = alphaBetaMax(b2, alpha, beta, depthleft - 1 );
 		if (score <= alpha) {

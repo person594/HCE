@@ -127,7 +127,6 @@ typedef struct {
 #define ROWDIF(p0, p1) ((p0 & 0x7) - (p1 & 0x7))
 
 #define ABS(n) (n >= 0 ? n : -n)
-
 /* 0eee  eeee  ssss  pppp  cccc  tttt  ttff  ffff
 t: to
 f: from
