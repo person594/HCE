@@ -1,8 +1,8 @@
 #include <stdlib.h>
 
 #define SEARCH_DEPTH 6
-#define MAX_MOVES 120
-//#define USE_TABLE
+#define MAX_MOVES 256
+#define USE_TABLE
 
 
 /*

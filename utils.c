@@ -380,7 +380,6 @@ int orthslide(bitboard occupied, int p0, int p1) {
 checks if side is attacking sq on the board.
 */
 int sqAttacked(Board *board, int sq, int side) {
-	validateBoardState(board);
 	int sd, i;
 	sd = (side == WHITE) ? 0 : 6;
 	
@@ -835,13 +834,13 @@ int getGameStatus(Board *board) {
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Board *board, int* moves) {
-	int i, n, sd, count = 0, cast;
+	int i, n, sd, count = 0, cast, prevMove = 0, *moves0;
+	moves0 = moves;
 	sd = 6*(board->ply%2);
-	if (HASENTRY(board->hash)) {	//if we found a previous good response to this position, try it first.  note it will be in the list twice. yolo.
-		*moves = transpositionTable[HASHKEY(board->hash)].move;
-		if (*moves > 0) {
-			moves++;
-			count++;
+	if (HASENTRY(board->hash)) {  //if we found a previous good response to this position, remember it, and put it first
+		prevMove = transpositionTable[HASHKEY(board->hash)].move;
+		if (prevMove > 0) {
+			*moves++ = prevMove;
 		}
 	}
 	cast = board->castle;
@@ -854,24 +853,28 @@ int getMoves(Board *board, int* moves) {
 			int m, cap;
 			bitboard movebits = pieceMoves(board, p, sq);
 			while ((m = popBit(&movebits)) != NO_SQUARE) {
+				int move;
 				cap = board->squares[m];
 				if ((p == WP || p == BP) && cap == EMPTY && sq%8 != m%8) { //en passant
 					cap = BP - sd;
 				}
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
-					*moves++ = MOV(sq, m, cap, WN, cast, board->enpas);
-					*moves++ = MOV(sq, m, cap, WB, cast, board->enpas);
-					*moves++ = MOV(sq, m, cap, WR, cast, board->enpas);
-					*moves++ = MOV(sq, m, cap, WQ, cast, board->enpas);
-					count += 4;
+					move = MOV(sq, m, cap, WQ, cast, board->enpas);
+					if (move != prevMove) *moves++ = move;
+					move = MOV(sq, m, cap, WN, cast, board->enpas);
+					if (move != prevMove) *moves++ = move;
+					move = MOV(sq, m, cap, WR, cast, board->enpas);
+					if (move != prevMove) *moves++ = move;
+					move = MOV(sq, m, cap, WB, cast, board->enpas);
+					if (move != prevMove) *moves++ = move;
 				} else {
-					*moves++ = MOV(sq, m, cap, EMPTY, cast, board->enpas);
-					count++;
+					move = MOV(sq, m, cap, EMPTY, cast, board->enpas);
+					if (move != prevMove) *moves++ = move;
 				}
 			}
 		}
 	}
-	return count;
+	return moves - moves0;
 }
 
 int moveSearch(Board *board, int depth, int* score) {
@@ -907,8 +910,9 @@ int moveSearch(Board *board, int depth, int* score) {
 }
 
 int eval(Board *board) {
-	int pointsPerCenter = 35;
-	return board->score + pointsPerCenter * (countBits(board->bits[WHITE] & CENTER) - countBits(board->bits[BLACK] & CENTER));
+	//int pointsPerCenter = 35;
+	//return board->score + pointsPerCenter * (countBits(board->bits[WHITE] & CENTER) - countBits(board->bits[BLACK] & CENTER));
+	return board->score;
 }
 
 //alpha = lower bound, beta = upper bound

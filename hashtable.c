@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 //note use of xor instead of or to facilitate randomness whenever RAND_MAX >= 2^15-1
-#define RAND64 (u64)rand() | \
+#define RAND64 (u64)rand() ^ \
                (u64)rand() << 15 ^ \
                (u64)rand() << 30 ^ \
                (u64)rand() << 45 ^ \
