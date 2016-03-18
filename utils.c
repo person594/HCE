@@ -778,7 +778,7 @@ int getGameStatus(Board *board) {
 				if ((p == WP || p == BP) && cap == EMPTY && m%8 != sq%8) { //en passant
 					cap = BP - sd;
 				}
-				else if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
+				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) { //pawn promotion
 					//king square can be obtained from the old board, as it won't change from a pawn move
 					kingSq = bsf(board->bits[WK + sd]);
 					
@@ -857,7 +857,8 @@ int getMoves(Board *board, int* moves) {
 				cap = board->squares[m];
 				if ((p == WP || p == BP) && cap == EMPTY && sq%8 != m%8) { //en passant
 					cap = BP - sd;
-				} else if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
+				}
+				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
 					*moves++ = MOV(sq, m, cap, WN, cast, board->enpas);
 					*moves++ = MOV(sq, m, cap, WB, cast, board->enpas);
 					*moves++ = MOV(sq, m, cap, WR, cast, board->enpas);
