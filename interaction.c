@@ -5,25 +5,24 @@
 
 //returns -1 on bad syntax, -2 on an illegal move, and -3 on an ambiguous move
 int fromAlg(Board *board, char* str) {
-		int sd, p, prom = 0, move = -2, sq0, sq1;
-		char rank0 = 0, row0 = 0, rank, row, ch;
+		int sd, p, prom = EMPTY, move = -2, sq0, sq1;
+		char rank0 = 0, file0 = 0, rank, file, ch;
 		bitboard b;
 		
 		sd = (board->ply%2) * 6;
-		if (strstr(str, "O-O") == str) {	//str starts with O-O, some kind of castling
+		if (strstr(str, "O-O") == str) {  //str starts with O-O, some kind of castling
 			str += 3;
 			p = WK + sd;
 			rank = '1' + (board->ply%2)*7;
-			if (strstr(str, "-O") == str) {				//O-O-O, queenside
+			if (strstr(str, "-O") == str) {  //O-O-O, queenside
 				str += 2;
-				row = 'c';
+				file = 'c';
 			} else {
-				row = 'g';
+				file = 'g';
 			}
-		} else {													//not castling, normal move parsing.
+		} else {  //not castling, normal move parsing.
 			//Get the piece being moved
 			p = WP + sd;
-			prom = WQ + sd;		//default to queen promotion
 			switch (*str) {
 				case  'N':
 					p = WN + sd;
@@ -48,11 +47,11 @@ int fromAlg(Board *board, char* str) {
 				case 0:
 					return -1;
 			}
-			// if there is another character before rank and row, i.e. a starting rank and/or row, or an x for capture.
+			// if there is another character before rank and file, i.e. a starting rank and/or file, or an x for capture.
 			//if (!(str[1] >= '1' && str[1] <= '8')) {
 			if (strlen(str) > 2 && strpbrk(str+2, "abcdefgh12345678")) {
 				if (*str >= 'a' && *str <= 'h'){
-					row0 = *str++;
+					file0 = *str++;
 				}
 				if (*str >= '1' && *str <= '8') {
 					rank0 = *str++;
@@ -64,13 +63,16 @@ int fromAlg(Board *board, char* str) {
 			if (!(*str >= 'a' && *str <= 'h')) {
 				return -1;
 			}
-			row = *str++;
+			file = *str++;
 			if (!(*str >= '1' && *str <= '8')) {
 				return -1;
 			}
 			rank = *str++;
+			if ((p == WP && rank == '8') || (p == BP && rank == '1')){ 
+				prom = WQ; //default to queen promotion
+			}
 			if (*str == '=') {
-				if (p == WP || p == BP) {
+				if (prom != EMPTY) {
 					str++;
 					switch (ch = *str++) {
 						case 'N':
@@ -100,9 +102,9 @@ int fromAlg(Board *board, char* str) {
 			}
 		}
 
-		sq1 = 8*(rank - '1') + (row - 'a');
+		sq1 = 8*(rank - '1') + (file - 'a');
 		
-		//printf("%c%c -> %c%c\n",row0, rank0, row, rank);
+		//printf("%c%c -> %c%c\n",file0, rank0, file, rank);
 		
 		b = board->bits[p];
 		while ((sq0 = popBit(&b)) != NO_SQUARE) {					//check all pieces of type p
@@ -111,8 +113,8 @@ int fromAlg(Board *board, char* str) {
 					if (sq0/8 != rank0 - '1') {
 						continue;
 					}
-				} if (row0) { 
-						if (sq0%8 != row0 - 'a') {
+				} if (file0) { 
+						if (sq0%8 != file0 - 'a') {
 							continue;
 					}
 				}
@@ -203,7 +205,7 @@ void toAlg(Board *board, int move, char* str) {
 			*str++ = 'a' + (from % 8);
 		}
 	} else {
-		flag = 0;	//whether two pieces can move to the same square.  1: shared row, 2: shared rank
+		flag = 0;	//whether two pieces can move to the same square.  1: shared file, 2: shared rank
 		b = board->bits[p];
 		while ((sq0 = popBit(&b)) != NO_SQUARE) {	//for each piece of the piece type being moved
 			if ((pieceMoves(board, p, sq0) & BIT(to)) && sq0 != from) {

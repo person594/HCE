@@ -65,15 +65,22 @@ int printMoves(Board *board){
 						printf("%d: %d-%d\n", p, sq0, sq1);
 					}
 					unmakeMove(board, move);
+					
+					move = MOV(sq0, sq1, cap, WQ, board->castle, board->enpas);
+					makeMove(board, move);
+					if (!sqAttacked(board, bsf(board->bits[WK + sd]), WHITE + (board->ply % 2))){
+						printf("%d: %d-%d\n", p, sq0, sq1);
+					}
+					unmakeMove(board, move);
 
+				} else {
+					move = MOV(sq0, sq1, cap, EMPTY, board->castle, board->enpas);
+					makeMove(board, move);
+					if (!sqAttacked(board, bsf(board->bits[WK + sd]), WHITE + (board->ply % 2))){
+						printf("%d: %d-%d\n", p, sq0, sq1);
+					}
+					unmakeMove(board, move);
 				}
-				move = MOV(sq0, sq1, cap, WQ, board->castle, board->enpas);
-				makeMove(board, move);
-				if (!sqAttacked(board, bsf(board->bits[WK + sd]), WHITE + (board->ply % 2))){
-					printf("%d: %d-%d\n", p, sq0, sq1);
-				}
-				unmakeMove(board, move);
-				//printf("sum = %d\n", sum);
 			}
 		}
 	}

@@ -292,7 +292,7 @@ void makeMove(Board* board, int mov) {
 
 
 void unmakeMove(Board *board, int mov) {
-	int sq0, sq1, cap, prom, enpas, capSq, p, cast;
+	int sq0, sq1, cap, prom, enpas, capSq, p, cast, sd;
 	bitboard diff;
 	sq0 = FROM(mov);
 	sq1 = TO(mov);
@@ -300,6 +300,8 @@ void unmakeMove(Board *board, int mov) {
 	prom = PROM(mov);
 	enpas = EP(mov);
 	p = board->squares[sq1];
+	sd = ISBLACK[p] * 6;
+	if (prom != EMPTY) p = WP + sd;
 	cast = CAST(mov);
 	capSq = sq1;
 	if (enpas != NO_SQUARE) {
@@ -378,6 +380,7 @@ int orthslide(bitboard occupied, int p0, int p1) {
 checks if side is attacking sq on the board.
 */
 int sqAttacked(Board *board, int sq, int side) {
+	validateBoardState(board);
 	int sd, i;
 	sd = (side == WHITE) ? 0 : 6;
 	
@@ -802,14 +805,24 @@ int getGameStatus(Board *board) {
 					if (!attacked){
 						return status;
 					}
-				}
-				move = MOV(sq, m, cap, WQ, cast, board->enpas);
-				makeMove(board, move);
-				kingSq = bsf(board->bits[WK + sd]);
-				attacked = sqAttacked(board, kingSq, opponent);
-				unmakeMove(board, move);
-				if (!attacked){
-					return status;
+					
+					move = MOV(sq, m, cap, WQ, cast, board->enpas);
+					makeMove(board, move);
+					attacked = sqAttacked(board, kingSq, opponent);
+					unmakeMove(board, move);
+					if (!attacked){
+						return status;
+					}
+					
+				} else {
+					move = MOV(sq, m, cap, EMPTY, cast, board->enpas);
+					makeMove(board, move);
+					kingSq = bsf(board->bits[WK + sd]);
+					attacked = sqAttacked(board, kingSq, opponent);
+					unmakeMove(board, move);
+					if (!attacked){
+						return status;
+					}
 				}
 			}
 		}
@@ -848,10 +861,12 @@ int getMoves(Board *board, int* moves) {
 					*moves++ = MOV(sq, m, cap, WN, cast, board->enpas);
 					*moves++ = MOV(sq, m, cap, WB, cast, board->enpas);
 					*moves++ = MOV(sq, m, cap, WR, cast, board->enpas);
-					count += 3;
+					*moves++ = MOV(sq, m, cap, WQ, cast, board->enpas);
+					count += 4;
+				} else {
+					*moves++ = MOV(sq, m, cap, EMPTY, cast, board->enpas);
+					count++;
 				}
-				*moves++ = MOV(sq, m, cap, WQ, cast, board->enpas);
-				count++;
 			}
 		}
 	}
