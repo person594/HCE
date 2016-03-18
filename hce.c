@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
   if (argc < 4) {
   	initBoard(&board);
   } else {
-  	int col, cast = 0, ep, hc = 0, fm = 1;
+  	int col, cast = 0, ep = NO_SQUARE, hc = 0, fm = 1;
   	if (argv[2][0] == 'b' || argv[2][0] == 'B') {
   		col = BLACK;
   	} else {
@@ -36,12 +36,14 @@ int main(int argc, char* argv[]) {
   		}
   		++argv[3];
   	}
-  	ep = getPos(argv[3][0], argv[3][1]);
-  	if (argc > 4){
-  		hc = strtol(argv[4], 0, 10);
+  	if ( argv[4][1]) {
+			ep = getPos(argv[4][0], argv[4][1]);
+		}
+  	if (argc > 5){
+  		hc = strtol(argv[5], 0, 10);
   	}
-  	if (argc > 5) {
-  		fm = strtol(argv[5], 0, 10);
+  	if (argc > 6) {
+  		fm = strtol(argv[6], 0, 10);
   	}
   	genBoard(&board, argv[1], col, cast, ep, hc, fm);
   }

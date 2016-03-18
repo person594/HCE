@@ -339,9 +339,8 @@ int getInputMove(Board *board) {
 		if (!strcmp(tokens[0], "perft")) {
 			int n;
 			if (numTokens == 2) {
-				if (n = strtol(tokens[1], 0, 10)) {		//intentional assignment in conditional
-					printf("%d\n", perftTest(board, n));
-				}
+				n = strtol(tokens[1], 0, 10);
+				printf("%d\n", perftTest(board, n));
 			} else {
 				printf("usage : perft n\nn - number of ply to look ahead\n");
 			}
