@@ -875,7 +875,7 @@ int getMoves(Board *board, int* moves) {
 }
 
 int moveSearch(Board *board, int depth, int* score) {
-	int numMoves, moves[120], sign, move = -1, i, nextMove;
+	int numMoves, moves[MAX_MOVES], sign, move = -1, i, nextMove;
 	numMoves = getMoves(board, moves);
 	if (board->ply % 2) {  //black to move, minimize
 		int min = VAL[WK];
@@ -913,7 +913,7 @@ int eval(Board *board) {
 
 //alpha = lower bound, beta = upper bound
 int alphaBetaMax(Board *board, int alpha, int beta, int depthleft, int* nextMove) {
-	int numMoves, moves[120], i;
+	int numMoves, moves[MAX_MOVES], i;
 	*nextMove = -1;
 	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
 		return eval(board);
@@ -921,9 +921,9 @@ int alphaBetaMax(Board *board, int alpha, int beta, int depthleft, int* nextMove
 	numMoves = getMoves(board, moves);
 	for (i = 0; i < numMoves; i++) {
 		int score;
+		tableEntry *t;
 		makeMove(board, moves[i]);
-		
-		tableEntry* t = &transpositionTable[HASHKEY(board->hash)];
+		t = &transpositionTable[HASHKEY(board->hash)];
 		if (HASENTRY(board->hash)) {
 			if (t->depth >= depthleft) {
 				//printf("yay\n");
@@ -954,7 +954,7 @@ int alphaBetaMax(Board *board, int alpha, int beta, int depthleft, int* nextMove
 }
 
 int alphaBetaMin(Board *board, int alpha, int beta, int depthleft, int* nextMove) {
-	int numMoves, moves[120], i;
+	int numMoves, moves[MAX_MOVES], i;
 	*nextMove = -1;
 	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
 		return eval(board);

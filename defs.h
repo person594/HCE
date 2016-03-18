@@ -1,5 +1,9 @@
 #include <stdlib.h>
 
+#define SEARCH_DEPTH 6
+#define MAX_MOVES 120
+//#define USE_TABLE
+
 
 /*
 8 56  57  58  59  60  61  62  63
@@ -159,7 +163,11 @@ e: en passant square before move
 
 //get a hash table key from a hash value
 #define HASHKEY(n) (n % TABLESIZE)
+#ifdef USE_TABLE
 #define HASENTRY(n) (transpositionTable[HASHKEY(n)].hash == n)
+#else
+#define HASENTRY(n) 0
+#endif
 
 int pos(bitboard);
 void printBitboard(bitboard);

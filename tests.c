@@ -5,7 +5,7 @@
 
 int perftTest(Board *board, int depth){
 	int sd, i, nMoves, sum = 0;
-	int moves[120];
+	int moves[MAX_MOVES];
 	sd = (board->ply % 2) * 6;
 	if (sqAttacked(board, bsf(board->bits[BK - sd]), WHITE + (board->ply % 2))){
 		return 0;

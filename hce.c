@@ -2,9 +2,6 @@
 
 #include "defs.h"
 
-
-#define SEARCH_DEPTH 6
-
 int main(int argc, char* argv[]) {
   Board board;
   int n;
