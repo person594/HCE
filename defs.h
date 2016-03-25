@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#define SEARCH_DEPTH 6
+#define SEARCH_DEPTH 7
 #define MAX_MOVES 256
 #define USE_TABLE
 
@@ -69,7 +69,7 @@ enum {
 #define Q_VAL 900
 #define K_VAL 90000
 
-#define TABLESIZE 16384
+#define TABLESIZE (1<<24)
 
 typedef unsigned long long int bitboard;
 typedef unsigned long long int u64;

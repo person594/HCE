@@ -878,34 +878,12 @@ int getMoves(Board *board, int* moves) {
 }
 
 int moveSearch(Board *board, int depth, int* score) {
-	int numMoves, moves[MAX_MOVES], sign, move = -1, i, nextMove;
-	numMoves = getMoves(board, moves);
-	if (board->ply % 2) {  //black to move, minimize
-		int min = VAL[WK];
-		for (i = 0; i < numMoves; i++) {
-			int s;
-			makeMove(board, moves[i]);
-			s = alphaBetaMax(board, VAL[BK], min, depth, &nextMove);
-			unmakeMove(board, moves[i]);
-			if (s < min) {
-				min = s;
-				move = moves[i];
-			}
-		}
-	} else {  //white to move, maximize
-		int max = VAL[BK];
-		for (i = 0; i < numMoves; i++) {
-			int s;
-			makeMove(board, moves[i]);
-			s = alphaBetaMin(board, max, VAL[WK], depth, &nextMove);
-			unmakeMove(board, moves[i]);
-			if (s > max) {
-				max = s;
-				move = moves[i];
-			}
-		}
+	int move;
+	if (board->ply %2 == 0) {
+		alphaBetaMax(board, 2*VAL[BK], 2*VAL[WK], SEARCH_DEPTH, &move);
+	} else {
+		alphaBetaMin(board, 2*VAL[BK], 2*VAL[WK], SEARCH_DEPTH, &move);
 	}
-	
 	return move;
 }
 
