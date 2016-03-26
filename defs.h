@@ -210,6 +210,7 @@ int alphaBetaMin(Board *, int, int, int, int *);
 int alphaBeta(Board *board, int alpha, int beta, int depthleft);
 int moveSearch(Board *, int, int*);
 int addToTable(Board *board, int score, int depth, int nodeType, int bestMove);
+int getTableMove(Board *board);
 void getTableBounds(Board *board, int *alpha, int *beta, int depth);
 
 int fromAlg(Board *, char*);

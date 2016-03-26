@@ -918,14 +918,12 @@ int getGameStatus(Board *board) {
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Board *board, int* moves, int onlyCaptures) {
-	int i, n, sd, count = 0, cast, prevMove = 0, *moves0;
+	int i, n, sd, count = 0, cast, tableMove, *moves0;
 	moves0 = moves;
 	sd = 6*(board->ply%2);
-	if (HASENTRY(board->hash)) {  //if we found a previous good response to this position, remember it, and put it first
-		prevMove = transpositionTable[HASHKEY(board->hash)].move;
-		if (prevMove > 0) {
-			*moves++ = prevMove;
-		}
+	tableMove = getTableMove(board);
+	if (tableMove) {
+		*moves++ = tableMove;
 	}
 	cast = board->castle;
 	for (i = WK; i >= WP; i--) {
@@ -949,16 +947,16 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 				}
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
 					move = MOV(sq, m, cap, WQ, cast, board->enpas);
-					if (move != prevMove) *moves++ = move;
+					if (move != tableMove) *moves++ = move;
 					move = MOV(sq, m, cap, WN, cast, board->enpas);
-					if (move != prevMove) *moves++ = move;
+					if (move != tableMove) *moves++ = move;
 					move = MOV(sq, m, cap, WR, cast, board->enpas);
-					if (move != prevMove) *moves++ = move;
+					if (move != tableMove) *moves++ = move;
 					move = MOV(sq, m, cap, WB, cast, board->enpas);
-					if (move != prevMove) *moves++ = move;
+					if (move != tableMove) *moves++ = move;
 				} else {
 					move = MOV(sq, m, cap, EMPTY, cast, board->enpas);
-					if (move != prevMove) *moves++ = move;
+					if (move != tableMove) *moves++ = move;
 				}
 			}
 		}
@@ -1125,6 +1123,7 @@ int moveSearch(Board *board, int depth, int *score) {
 int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 	int numMoves, i, moves[MAX_MOVES];
 	int nodeType = UPPER;
+	int bestMove = 0;
 	getTableBounds(board, &alpha, &beta, depthleft);
 	if (alpha >= beta) return alpha;
 	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
@@ -1138,15 +1137,16 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 		unmakeMove(board, moves[i]);
 		if (score >= beta) {
 			nodeType = LOWER;
-			addToTable(board, beta, depthleft, nodeType, 0);
+			addToTable(board, beta, depthleft, nodeType, moves[i]);
 			return beta;
 		}
 		if (score > alpha) {
 			alpha = score;
+			bestMove = moves[i];
 			nodeType = EXACT;
 		}
 	}
-	addToTable(board, alpha, depthleft, nodeType, 0);
+	addToTable(board, alpha, depthleft, nodeType, bestMove);
 	return alpha;
 }
 
