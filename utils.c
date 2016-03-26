@@ -921,6 +921,17 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 	int i, n, sd, count = 0, cast, tableMove, *moves0;
 	moves0 = moves;
 	sd = 6*(board->ply%2);
+	
+	//both of the next two lookups can generate non-captures.  is this bad?
+	//if our position is in the opening book, return only the book move
+	/*
+	tableMove = getBookMove(board);
+	if (tableMove) {
+		*moves++ = tableMove;
+		return 1;
+	}
+	*/
+	//if we have previously explored this position, put the best move we've found first
 	tableMove = getTableMove(board);
 	if (tableMove) {
 		*moves++ = tableMove;
@@ -1054,7 +1065,8 @@ int alphaBetaMin(Board *board, int alpha, int beta, int depthleft) {
 */
 
 int quiescence(Board *board, int alpha, int beta) {
-	int numMoves, i, moves[MAX_MOVES];
+	int numMoves, i, moves[MAX_MOVES], bestMove = 0;
+	int nodeType = UPPER;
 	int standingPat;
 	#define DELTA 200
 	standingPat = eval(board); 
@@ -1070,35 +1082,27 @@ int quiescence(Board *board, int alpha, int beta) {
 	if (!board->bits[WK] || !board->bits[BK]) {
 		return standingPat;
 	}
+	getTableBounds(board, &alpha, &beta, 0);
+	if (alpha >= beta) return alpha;
 	numMoves = getMoves(board, moves, 1);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
-		int sq1;
-		sq1 = TO(moves[i]);
-		if (board->squares[sq1] == EMPTY) {
-			if (sq1 != board->enpas) {
-				continue;
-			} else {
-				int p;
-				p = board->squares[FROM(moves[i])];
-				if (p != BP && p != WP){
-					continue;
-				}
-			}
-		}
-		//at this point, we have a capture on our hands
 		//delta pruning
 		if (ABS(VAL[CAP(moves[i])]) + DELTA < alpha) continue;
 		makeMove(board, moves[i]);
 		score = -quiescence(board, -beta, -alpha);
 		unmakeMove(board, moves[i]);
 		if (score >= beta) {
+			nodeType = LOWER;
+			addToTable(board, beta, 0, nodeType, moves[i]);
 			return beta;
 		}
 		if (score > alpha) {
 			alpha = score;
+			bestMove = moves[i];
 		}
 	}
+	addToTable(board, beta, 0, nodeType, bestMove);
 	return alpha;
 }
 
