@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "defs.h"
 
@@ -133,35 +134,83 @@ void initBoard(Board* board){
 }
 
 //generates a board given Forsyth-Edwards Notation
-void genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock, int movenum){
-	int i, r = 7, c = 0;
-	clearBoard(board);
-	board->ply = 2*(movenum-1) + (active == BLACK);
-	board->enpas = enpas;
-	board->ephash = EPHASH(board);
-	board->castle = castle;
-	for (i = 0; str[i]; i++, c++) {
+int genBoard(Board* board, char* fen){
+	int i, r, f;
+	char *pieces, *side, *castling, *enpassant, *halfmove, *fullmove;
+	char str[512];
+	Board newBoard; //make our board locally, then copy it over at the end
+	strncpy(str, fen, 511);
+	pieces = strtok(str, " ");
+	side = strtok(NULL, " ");
+	castling = strtok(NULL, " ");
+	enpassant = strtok(NULL, " ");
+	halfmove = strtok(NULL, " ");
+	fullmove = strtok(NULL, " ");
+	clearBoard(&newBoard);
+	newBoard.ply = 2 * (atol(fullmove) - 1);
+	if (newBoard.ply < 0) return 0;
+	if (strcmp(side, "b") == 0) {
+		newBoard.ply++;
+	} else if (strcmp(side, "w") != 0) {
+		return 0;
+	}
+	if (strcmp(castling, "-") != 0) {
+		if (*castling == 'K' || *castling == 'A') {
+			newBoard.castle |= C_WK;
+			++castling;
+		}
+		if (*castling == 'Q' || *castling == 'H') {
+			newBoard.castle |= C_WQ;
+			++castling;
+		}
+		if (*castling == 'k' || *castling == 'a') {
+			newBoard.castle |= C_BK;
+			++castling;
+		}
+		if (*castling == 'q' || *castling == 'h') {
+			newBoard.castle |= C_BQ;
+			++castling;
+		}
+		if (*castling) return 0;
+	}
+	if (strcmp(enpassant, "-") != 0) {
+		int file, rank;
+		file = enpassant[0] - 'a';
+		if (file < 0 || file >= 8) return 0;
+		rank = enpassant[1] - '1';
+		if (rank != 2 && rank != 5) return 0;
+		newBoard.enpas = 8*rank + file;
+	}
+	newBoard.ephash = EPHASH(&newBoard);
+	for (i = 0, r = 7, f = 0; pieces[i]; ++i) {
 		int p;
 		char ch;
-		ch = str[i];
+		ch = pieces[i];
 		if (ch == '/'){
-			r--;
-			c = -1;
-			continue;
+			if (f != 8) return 0;
+			if (--r < 0) return 0;
+			f = 0;
+		} else if (ch > '0' && ch <= '8'){
+			f += (ch - '0');
+		} else {
+			if (f > 7) return 0;
+			p = getPiece(ch);
+			if (p == EMPTY) {
+				return 0;
+			}
+			newBoard.bits[p] |= BIT(r*8 + f);
+			newBoard.bits[OCCUPIED] |= BIT(r*8 + f);
+			newBoard.bits[WHITE + ISBLACK[p]] |= BIT(r*8 + f);
+			newBoard.score += VAL[p];
+			newBoard.squares[r*8 + f] = p;
+			++f;
 		}
-		if (ch > '0' && ch <= '9'){
-			c += (ch - '1');
-			continue;
-		}
-		p = getPiece(str[i]);
-		board->bits[p] |= BIT(r*8 + c);
-		board->bits[OCCUPIED] |= BIT(r*8 + c);
-		board->bits[WHITE + ISBLACK[p]] |= BIT(r*8 + c);
-		board->score += VAL[p];
-		board->squares[r*8 + c] = p;
 	}
-	board->bits[EMPTY] = ~board->bits[OCCUPIED];
-	board->hash = getHashCode(board);
+	if (r != 0 && f != 8) return 0;
+	newBoard.bits[EMPTY] = ~newBoard.bits[OCCUPIED];
+	newBoard.hash = getHashCode(&newBoard);
+	*board = newBoard;
+	return 1;
 }
 
 void clearSq(Board* board, int sq){

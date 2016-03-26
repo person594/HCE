@@ -2,51 +2,44 @@
 
 #include "defs.h"
 
+#include <getopt.h>
 int main(int argc, char* argv[]) {
   Board board;
   int n;
+  int c, option_index;
+  char *bookPath = 0;
+  FILE *bookFile;
+  static struct option options[] = {
+		{"book", required_argument, 0, 'b'},
+		{"position", required_argument, 0, 'p'},
+		//{"depth", required_argument, 0, 'd'},
+		//{"record", optional_argument, 0, 'r'},
+		{0,0,0,0}
+	};
   initHashTable();
-  FILE *bookFile = fopen("../donna_opening_books/komodo.bin", "r");
-  readPolyglotBook(bookFile);
-  fclose(bookFile);
-  if (argc < 4) {
-  	initBoard(&board);
-  } else {
-  	int col, cast = 0, ep = NO_SQUARE, hc = 0, fm = 1;
-  	if (argv[2][0] == 'b' || argv[2][0] == 'B') {
-  		col = BLACK;
-  	} else {
-  		col = WHITE;
-  	}
-  	while (*(argv[3])){
-  		printf("%c\n", argv[3][0]);
-  		switch (*(argv[3])) {
-  			case 'K':
-  				cast |= C_WK;
-  				break;
-  			case 'Q':
-  				cast |= C_WQ;
-  				break;
-  			case 'k':
-  				cast |= C_BK;
-  				break;
-  			case 'q':
-  				cast |= C_BQ;
-  				break;
-  		}
-  		++argv[3];
-  	}
-  	if ( argv[4][1]) {
-			ep = getPos(argv[4][0], argv[4][1]);
+  initBoard(&board);
+  while ((c = getopt_long(argc, argv, "b:p:", options, &option_index))!= -1) {
+		switch(c) {
+			case 'b':
+				bookPath = optarg;
+				break;
+			case 'p':
+				if (!optarg || !genBoard(&board, optarg)) {
+					printf("Invalid position notation\n");
+					exit(1);
+				}
+				break;
 		}
-  	if (argc > 5){
-  		hc = strtol(argv[5], 0, 10);
-  	}
-  	if (argc > 6) {
-  		fm = strtol(argv[6], 0, 10);
-  	}
-  	genBoard(&board, argv[1], col, cast, ep, hc, fm);
-  }
+	}
+	if (bookPath) {
+		bookFile = fopen(bookPath, "r");
+		if (! bookFile) {
+			printf("Could not open opening book file %s\n", bookPath);
+			exit(1);
+		}
+		readPolyglotBook(bookFile);
+		fclose(bookFile);
+	}
   //twoPlayerLoop(board);
   onePlayerLoop(&board);
 }

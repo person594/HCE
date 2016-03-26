@@ -48,9 +48,6 @@ int fromPolyglotMove(int polyglotMove) {
 		case 4:
 			prom = WQ;
 			break;
-		default:
-			printf("%d\n", polyglotMove/ 8);
-			break;
 	}
 	
 	sq0 = 8*r0 + f0;
@@ -99,5 +96,4 @@ int readPolyglotEntry(FILE *file) {
 void readPolyglotBook(FILE *file) {
 	int i;
 	while (readPolyglotEntry(file));
-	printf("%d collisions out of %d total entries: %f%%\n", collisions, entries, 100.0 * collisions / entries);
 }

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SEARCH_DEPTH 5
+#define SEARCH_DEPTH 6
 #define MAX_MOVES 256
 #define USE_TABLE
 
@@ -224,7 +224,7 @@ char getSymbol(int);
 u64 getHashCode(Board *);
 void initHashTable();
 
-void genBoard(Board* board, char* str, int active, int castle, int enpas, int hmclock, int movenum);
+int genBoard(Board* board, char* fen);
 int getInputMove(Board *board);
 
 int bsf(bitboard b);
