@@ -966,7 +966,7 @@ int getGameStatus(Board *board) {
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Board *board, int* moves, int onlyCaptures) {
-	int i, n, sd, count = 0, cast, storedMove, fromBook = 0, *moves0;
+	int i, n, sd, count = 0, cast, enpas, bookMove, fromBook = 0, *moves0;
 	moves0 = moves;
 	sd = 6*(board->ply%2);
 	
@@ -974,19 +974,9 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 	//invalid moves in the case of a hash collision.  We go throught the
 	//full list of moves anyway, and ensure the remembered move is present.
 	
-	storedMove = getBookMove(board);
-	if (storedMove) {
-		fromBook = 1;
-	} else {
-		//if we have previously explored this position, put the best move we've found first
-		storedMove = getTableMove(board);
-		if (storedMove) {
-			*moves++ = storedMove;
-		}
-	}
-	
+	bookMove = getBookMove(board);
 	cast = board->castle;
-	for (i = WK; i >= WP; i--) {
+	for (i = WP; i <= WK; ++i) {
 		int p, sq;
 		bitboard b;
 		p = sd + i;
@@ -1004,69 +994,47 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 				cap = board->squares[m];
 				if ((p == WP || p == BP) && cap == EMPTY && sq%8 != m%8) { //en passant
 					cap = BP - sd;
-					if (m/8 ==0 || m/8 == 7) {
-						printf("oops\n");
-					}
 				}
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
 					move = MOV(sq, m, cap, WQ, cast, board->enpas);
-					if (move == storedMove) {
-						storedMove = 0;
-						if (fromBook) {
+					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
-						}
 					} else {
-						 *moves++ = move;
+						*moves++ = move;
 					}
 					move = MOV(sq, m, cap, WN, cast, board->enpas);
-					if (move == storedMove) {
-						storedMove = 0;
-						if (fromBook) {
+					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
-						}
 					} else {
-						 *moves++ = move;
+						*moves++ = move;
 					}
 					move = MOV(sq, m, cap, WR, cast, board->enpas);
-					if (move == storedMove) {
-						storedMove = 0;
-						if (fromBook) {
+					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
-						}
 					} else {
-						 *moves++ = move;
+						*moves++ = move;
 					}
 					move = MOV(sq, m, cap, WB, cast, board->enpas);
-					if (move == storedMove) {
-						storedMove = 0;
-						if (fromBook) {
+					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
-						}
 					} else {
-						 *moves++ = move;
+						*moves++ = move;
 					}
 				} else {
 					move = MOV(sq, m, cap, EMPTY, cast, board->enpas);
-					if (move == storedMove) {
-						storedMove = 0;
-						if (fromBook) {
-							*moves0 = move;
-							return 1;
-						}
+					if (move == bookMove) {
+						*moves0 = move;
+						return 1;
 					} else {
-						 *moves++ = move;
+						*moves++ = move;
 					}
 				}
 			}
 		}
-	}
-	if (storedMove) {
-		//if our stored move was not valid -- probably due to a hash collision
-		*moves0 = *--moves;
 	}
 	orderMoves(board, moves0, moves - moves0);
 	return moves - moves0;
@@ -1077,8 +1045,14 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 void orderMoves(Board *board, int moves[], int numMoves) {
 	int i;
 	int scores[MAX_MOVES];
+	int tableMove;
+	tableMove = getTableMove(board);
 	for (i = 0; i < numMoves; ++i) {
+		int tableMove;
 		scores[i] = ABS(VAL[CAP(moves[i])]);
+		if (moves[i] == tableMove) {
+			scores[i] = 2*K_VAL;
+		}
 	}
 	//insertion sort these for now.  Investigate sorting networks later.
 	for (i = 1; i < numMoves; ++i) {

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SEARCH_DEPTH 6
+#define SEARCH_DEPTH 7
 #define MAX_MOVES 256
 #define USE_TABLE
 
