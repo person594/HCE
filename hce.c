@@ -6,6 +6,9 @@ int main(int argc, char* argv[]) {
   Board board;
   int n;
   initHashTable();
+  FILE *bookFile = fopen("../donna_opening_books/komodo.bin", "r");
+  readPolyglotBook(bookFile);
+  fclose(bookFile);
   if (argc < 4) {
   	initBoard(&board);
   } else {

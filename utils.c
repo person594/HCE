@@ -2,7 +2,6 @@
 
 #include "defs.h"
 
-
 void printBitboard(bitboard board){
   int r, c;
   for (r = 7; r >= 0; r--){
@@ -242,7 +241,7 @@ void makeMove(Board* board, int mov) {
 				enpas = sq0+8;
 			} else if (sq1  == board->enpas){  //enpassant capture
 				clearSq(board, board->enpas - 8);
-			} else if (sq1/8 == 7){	//pawn promotion
+			} else if (sq1/8 == 7){ //pawn promotion
 				setSq(board, sq1, prom);
 			}
 			break;
@@ -918,24 +917,25 @@ int getGameStatus(Board *board) {
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Board *board, int* moves, int onlyCaptures) {
-	int i, n, sd, count = 0, cast, tableMove, *moves0;
+	int i, n, sd, count = 0, cast, storedMove, fromBook = 0, *moves0;
 	moves0 = moves;
 	sd = 6*(board->ply%2);
 	
-	//both of the next two lookups can generate non-captures.  is this bad?
-	//if our position is in the opening book, return only the book move
-	/*
-	tableMove = getBookMove(board);
-	if (tableMove) {
-		*moves++ = tableMove;
-		return 1;
+	//both of the next two lookups can generate non-captures, and possibly
+	//invalid moves in the case of a hash collision.  We go throught the
+	//full list of moves anyway, and ensure the remembered move is present.
+	
+	storedMove = getBookMove(board);
+	if (storedMove) {
+		fromBook = 1;
+	} else {
+		//if we have previously explored this position, put the best move we've found first
+		storedMove = getTableMove(board);
+		if (storedMove) {
+			*moves++ = storedMove;
+		}
 	}
-	*/
-	//if we have previously explored this position, put the best move we've found first
-	tableMove = getTableMove(board);
-	if (tableMove) {
-		*moves++ = tableMove;
-	}
+	
 	cast = board->castle;
 	for (i = WK; i >= WP; i--) {
 		int p, sq;
@@ -955,22 +955,69 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 				cap = board->squares[m];
 				if ((p == WP || p == BP) && cap == EMPTY && sq%8 != m%8) { //en passant
 					cap = BP - sd;
+					if (m/8 ==0 || m/8 == 7) {
+						printf("oops\n");
+					}
 				}
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
 					move = MOV(sq, m, cap, WQ, cast, board->enpas);
-					if (move != tableMove) *moves++ = move;
+					if (move == storedMove) {
+						storedMove = 0;
+						if (fromBook) {
+							*moves0 = move;
+							return 1;
+						}
+					} else {
+						 *moves++ = move;
+					}
 					move = MOV(sq, m, cap, WN, cast, board->enpas);
-					if (move != tableMove) *moves++ = move;
+					if (move == storedMove) {
+						storedMove = 0;
+						if (fromBook) {
+							*moves0 = move;
+							return 1;
+						}
+					} else {
+						 *moves++ = move;
+					}
 					move = MOV(sq, m, cap, WR, cast, board->enpas);
-					if (move != tableMove) *moves++ = move;
+					if (move == storedMove) {
+						storedMove = 0;
+						if (fromBook) {
+							*moves0 = move;
+							return 1;
+						}
+					} else {
+						 *moves++ = move;
+					}
 					move = MOV(sq, m, cap, WB, cast, board->enpas);
-					if (move != tableMove) *moves++ = move;
+					if (move == storedMove) {
+						storedMove = 0;
+						if (fromBook) {
+							*moves0 = move;
+							return 1;
+						}
+					} else {
+						 *moves++ = move;
+					}
 				} else {
 					move = MOV(sq, m, cap, EMPTY, cast, board->enpas);
-					if (move != tableMove) *moves++ = move;
+					if (move == storedMove) {
+						storedMove = 0;
+						if (fromBook) {
+							*moves0 = move;
+							return 1;
+						}
+					} else {
+						 *moves++ = move;
+					}
 				}
 			}
 		}
+	}
+	if (storedMove) {
+		//if our stored move was not valid -- probably due to a hash collision
+		*moves0 = *--moves;
 	}
 	return moves - moves0;
 }
@@ -1173,12 +1220,38 @@ int addToTable(Board *board, int score, int depth, int nodeType, int bestMove) {
 	return 1;
 }
 
+int getBookMove(Board *board) {
+	tableEntry *t;
+	int i;
+	i = HASHKEY(board->hash);
+	t = &transpositionTable[i];
+	if (t->hash == board->hash && t->bookMove) {
+		//the opening book doesn't contain information like en-passant
+		//and castling rights, so we must provide it
+		int move;
+		int p, sq0, sq1, cap, prom;
+		int sd;
+		sd = 6 * (board->ply % 2);
+		move = t->bookMove;
+		sq0 = FROM(move);
+		sq1 = TO(move);
+		p = board->squares[sq0];
+		cap = board->squares[sq1];
+		if ((p == WP || p == BP) && cap == EMPTY && sq1%8 != sq0%8) { //en passant
+			cap = BP - sd;
+		}
+		prom = PROM(move);
+		return MOV(sq0, sq1, cap, prom, board->castle, board->enpas);
+	}
+	return 0;
+}
+
 int getTableMove(Board *board) {
 	tableEntry *t;
 	int i;
 	i = HASHKEY(board->hash);
 	t = &transpositionTable[i];
-	if (t->hash == board->hash) { 
+	if (t->hash == board->hash && t->nodeType != BOOK) { 
 		return t->move;
 	}
 	return 0;

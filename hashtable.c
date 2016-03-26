@@ -16,7 +16,8 @@ tableEntry transpositionTable[TABLESIZE];
 void clearTranspositionTable() {
 	int i;
 	for (i = 0; i < TABLESIZE; i++) {
-		transpositionTable[i].move = -1;
+		transpositionTable[i].move = 0;
+		transpositionTable[i].bookMove = 0;
 		if (transpositionTable[i].hash % TABLESIZE == i) {
 			transpositionTable[i].hash++;
 		}

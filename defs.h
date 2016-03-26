@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #define SEARCH_DEPTH 5
 #define MAX_MOVES 256
@@ -80,13 +81,14 @@ typedef unsigned long long int u64;
 #define EXACT 0
 #define LOWER 1
 #define UPPER 2
-
+#define BOOK 3 //for entries that only have an opening book move.  entries with opening book moves can have a type other than this, however
 typedef struct {
 	u64 hash;					//the full hashvalue of the position, as opposed to the index, which is of a smaller range
 	int depth;				//the depth left when this position was encountered.
 	int value;				//the value assigned to this
 	int nodeType;
-	int move;					//if depth is nonzero, the previously determined best move
+	int move;					//the previously determined best move
+	int bookMove;
 } tableEntry;
 
 
@@ -211,6 +213,7 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft);
 int moveSearch(Board *, int, int*);
 int addToTable(Board *board, int score, int depth, int nodeType, int bestMove);
 int getTableMove(Board *board);
+int getBookMove(Board *board);
 void getTableBounds(Board *board, int *alpha, int *beta, int depth);
 
 int fromAlg(Board *, char*);
@@ -227,3 +230,6 @@ int bsf(bitboard b);
 int bsr(bitboard b);
 int sf(bitboard b);
 int sr(bitboard b);
+
+
+void readPolyglotBook(FILE *file);
