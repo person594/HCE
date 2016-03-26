@@ -77,13 +77,15 @@ enum {
 typedef unsigned long long int bitboard;
 typedef unsigned long long int u64;
 
+#define EXACT 0
+#define LOWER 1
+#define UPPER 2
 
 typedef struct {
 	u64 hash;					//the full hashvalue of the position, as opposed to the index, which is of a smaller range
 	int depth;				//the depth left when this position was encountered.
 	int value;				//the value assigned to this
-	int bound;        //contains both the bound, and whether it is lower, upper, or exact
-	                  //ex
+	int nodeType;
 	int move;					//if depth is nonzero, the previously determined best move
 } tableEntry;
 
@@ -207,6 +209,8 @@ int alphaBetaMax(Board *, int, int, int, int *);
 int alphaBetaMin(Board *, int, int, int, int *);
 int alphaBeta(Board *board, int alpha, int beta, int depthleft);
 int moveSearch(Board *, int, int*);
+int addToTable(Board *board, int score, int depth, int nodeType, int bestMove);
+void getTableBounds(Board *board, int *alpha, int *beta, int depth);
 
 int fromAlg(Board *, char*);
 void toAlg(Board *, int, char*);

@@ -1124,6 +1124,9 @@ int moveSearch(Board *board, int depth, int *score) {
 
 int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 	int numMoves, i, moves[MAX_MOVES];
+	int nodeType = UPPER;
+	getTableBounds(board, &alpha, &beta, depthleft);
+	if (alpha >= beta) return alpha;
 	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
 		return quiescence(board, alpha, beta);
 	}
@@ -1134,13 +1137,69 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 		score = -alphaBeta(board, -beta, -alpha, depthleft - 1);
 		unmakeMove(board, moves[i]);
 		if (score >= beta) {
+			nodeType = LOWER;
+			addToTable(board, beta, depthleft, nodeType, 0);
 			return beta;
 		}
 		if (score > alpha) {
 			alpha = score;
+			nodeType = EXACT;
 		}
 	}
+	addToTable(board, alpha, depthleft, nodeType, 0);
 	return alpha;
+}
+
+
+int addToTable(Board *board, int score, int depth, int nodeType, int bestMove) {
+	tableEntry *t;
+	int i;
+	i = HASHKEY(board->hash);
+	t = &transpositionTable[i];
+	if (t->hash == board->hash) { //previously seen position
+		if (t->depth < depth) return 0;
+	} else if (HASHKEY(t->hash) == i) { //type-2 error
+			if (0) return 0; //todo -- add replacement policy
+	}
+	t->hash = board->hash;
+	t->depth = depth;
+	t->value = score;
+	t->nodeType = nodeType;
+	t->move = bestMove;
+	return 1;
+}
+
+int getTableMove(Board *board) {
+	tableEntry *t;
+	int i;
+	i = HASHKEY(board->hash);
+	t = &transpositionTable[i];
+	if (t->hash == board->hash) { 
+		return t->move;
+	}
+	return 0;
+}
+
+void getTableBounds(Board *board, int *alpha, int *beta, int depth) {
+	tableEntry *t;
+	int i;
+	i = HASHKEY(board->hash);
+	t = &transpositionTable[i];
+	if (t->hash == board->hash) {
+		if (t-> depth >= depth) {
+			switch(t->nodeType) {
+				case EXACT:
+					*alpha = *beta = t->value;
+					break;
+				case LOWER:
+					*alpha = t->value;
+					break;
+				case UPPER:
+					*beta = t->value;
+					break;
+			}
+		}
+	}
 }
 
 
