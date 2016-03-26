@@ -1019,7 +1019,31 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 		//if our stored move was not valid -- probably due to a hash collision
 		*moves0 = *--moves;
 	}
+	orderMoves(board, moves0, moves - moves0);
 	return moves - moves0;
+}
+
+
+
+void orderMoves(Board *board, int moves[], int numMoves) {
+	int i;
+	int scores[MAX_MOVES];
+	for (i = 0; i < numMoves; ++i) {
+		scores[i] = ABS(VAL[CAP(moves[i])]);
+	}
+	//insertion sort these for now.  Investigate sorting networks later.
+	for (i = 1; i < numMoves; ++i) {
+		int j;
+		for (j = i; j > 0 && scores[j-1] < scores[j]; --j) {
+			int tmp;
+			tmp = scores[j-1];
+			scores[j-1] = scores[j];
+			scores[j] = tmp;
+			tmp = moves[j-1];
+			moves[j-1] = moves[j];
+			moves[j] = tmp;
+		}
+	}
 }
 /*
 int moveSearch(Board *board, int depth, int* score) {

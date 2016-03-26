@@ -207,6 +207,7 @@ void onePlayerLoop(Board *);
 int getGameStatus(Board *);
 
 int getMoves(Board *board, int moves[], int onlyCaptures);
+void orderMoves(Board *board, int moves[], int numMoves);
 int alphaBetaMax(Board *, int, int, int, int *);
 int alphaBetaMin(Board *, int, int, int, int *);
 int alphaBeta(Board *board, int alpha, int beta, int depthleft);
