@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#define SEARCH_DEPTH 7
+#define SEARCH_DEPTH 5
 #define MAX_MOVES 256
 #define USE_TABLE
 
@@ -69,15 +69,21 @@ enum {
 #define Q_VAL 900
 #define K_VAL 90000
 
+#define MAX_VAL (2*K_VAL)
+#define MIN_VAL (-MAX_VAL)
+
 #define TABLESIZE (1<<24)
 
 typedef unsigned long long int bitboard;
 typedef unsigned long long int u64;
 
+
 typedef struct {
 	u64 hash;					//the full hashvalue of the position, as opposed to the index, which is of a smaller range
 	int depth;				//the depth left when this position was encountered.
 	int value;				//the value assigned to this
+	int bound;        //contains both the bound, and whether it is lower, upper, or exact
+	                  //ex
 	int move;					//if depth is nonzero, the previously determined best move
 } tableEntry;
 
@@ -196,9 +202,10 @@ void twoPlayerLoop(Board *);
 void onePlayerLoop(Board *);
 int getGameStatus(Board *);
 
-int getMoves(Board *, int *);
+int getMoves(Board *board, int moves[], int onlyCaptures);
 int alphaBetaMax(Board *, int, int, int, int *);
 int alphaBetaMin(Board *, int, int, int, int *);
+int alphaBeta(Board *board, int alpha, int beta, int depthleft);
 int moveSearch(Board *, int, int*);
 
 int fromAlg(Board *, char*);

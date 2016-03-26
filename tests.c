@@ -14,7 +14,7 @@ int perftTest(Board *board, int depth){
 		return 1;
 	}
 	
-	nMoves = getMoves(board, moves);
+	nMoves = getMoves(board, moves, 0);
 	for (i = 0; i < nMoves; ++i) {
 		makeMove(board, moves[i]);
 		sum += perftTest(board, depth - 1);
