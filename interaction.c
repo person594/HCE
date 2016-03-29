@@ -205,22 +205,22 @@ void toAlg(Board *board, int move, char* str) {
 			*str++ = 'a' + (from % 8);
 		}
 	} else {
-		flag = 0;	//whether two pieces can move to the same square.  1: shared file, 2: shared rank
+		flag = 0;	//whether two pieces can move to the same square.  1: disambiguate by file, 2: disambiguate by rank
 		b = board->bits[p];
 		while ((sq0 = popBit(&b)) != NO_SQUARE) {	//for each piece of the piece type being moved
 			if ((pieceMoves(board, p, sq0) & BIT(to)) && sq0 != from) {
-				if (sq0 % 8 == from) {
-					flag |= 2;
-				} if (sq0 / 8 == from) {
+				if (sq0 % 8 != from % 8) {
 					flag |= 1;
+				} else {
+					flag |= 2;
 				}
 			}
-			if (flag & 1) {
-				*str++ = 'a' + (from % 8);
-			}
-			if (flag & 2) {
-				*str++ = '1' + (from / 8);
-			}
+		}
+		if (flag & 1) {
+			*str++ = 'a' + (from % 8);
+		}
+		if (flag & 2) {
+			*str++ = '1' + (from / 8);
 		}
 	}
 	if (board->bits[OCCUPIED] & BIT(to)){
