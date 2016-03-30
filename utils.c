@@ -142,10 +142,15 @@ int genBoard(Board* board, char* fen){
 	strncpy(str, fen, 511);
 	pieces = strtok(str, " ");
 	side = strtok(NULL, " ");
+	if (!side) return 0;
 	castling = strtok(NULL, " ");
+	if (!castling) return 0;
 	enpassant = strtok(NULL, " ");
+	if (!enpassant) return 0;
 	halfmove = strtok(NULL, " ");
+	if (!halfmove) return 0;
 	fullmove = strtok(NULL, " ");
+	if (!fullmove) return 0;
 	clearBoard(&newBoard);
 	newBoard.ply = 2 * (atol(fullmove) - 1);
 	if (newBoard.ply < 0) return 0;
