@@ -3,22 +3,34 @@
 #include "defs.h"
 
 #include <getopt.h>
+#include <string.h>
+#include <signal.h>
+
+
+int interrupt_flag = 0;
+void signal_handler(int signal) {
+	//interrupt_flag = 1;
+}
+
 int main(int argc, char* argv[]) {
-  Board board;
-  int n;
-  int c, option_index;
-  char *bookPath = 0;
-  FILE *bookFile;
-  static struct option options[] = {
+	Board board;
+	int n;
+	int c, option_index;
+	char *bookPath = 0;
+	FILE *bookFile;
+	
+	signal(SIGINT, signal_handler);
+	
+	static struct option options[] = {
 		{"book", required_argument, 0, 'b'},
 		{"position", required_argument, 0, 'p'},
 		//{"depth", required_argument, 0, 'd'},
 		//{"record", optional_argument, 0, 'r'},
 		{0,0,0,0}
 	};
-  initHashTable();
-  initBoard(&board);
-  while ((c = getopt_long(argc, argv, "b:p:", options, &option_index))!= -1) {
+	initHashTable();
+	initBoard(&board);
+	while ((c = getopt_long(argc, argv, "b:p:", options, &option_index))!= -1) {
 		switch(c) {
 			case 'b':
 				bookPath = optarg;
@@ -41,7 +53,8 @@ int main(int argc, char* argv[]) {
 		fclose(bookFile);
 	}
   //twoPlayerLoop(board);
-  onePlayerLoop(&board);
+  //onePlayerLoop(&board);
+  xboardLoop(&board);
 }
 
 
@@ -92,7 +105,7 @@ void twoPlayerLoop(Board *board) {
 }
 
 void onePlayerLoop(Board *board) {
-	int move, score, status = 0;		//0: game on, 1: white wins, 2: black wins, -1: stalemate
+	int move, score, status = 0; //0: game on, 1: white wins, 2: black wins, -1: stalemate
 	validateBoardState(board);
 	printf("\n");
 	printBoard(board);

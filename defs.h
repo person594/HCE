@@ -207,11 +207,11 @@ void onePlayerLoop(Board *);
 int getGameStatus(Board *);
 
 int getMoves(Board *board, int moves[], int onlyCaptures);
-void orderMoves(Board *board, int moves[], int numMoves);
+void orderMoves(Board *board, int numMoves, int moves[]);
 int alphaBetaMax(Board *, int, int, int, int *);
 int alphaBetaMin(Board *, int, int, int, int *);
 int alphaBeta(Board *board, int alpha, int beta, int depthleft);
-int moveSearch(Board *, int, int*);
+int moveSearch(Board *board, int depth, int *score);
 int addToTable(Board *board, int score, int depth, int nodeType, int bestMove);
 int getTableMove(Board *board);
 int getBookMove(Board *board);
@@ -234,3 +234,17 @@ int sr(bitboard b);
 
 
 void readPolyglotBook(FILE *file);
+
+
+
+typedef struct {
+	char *name;
+	int i_value;
+	char *s_value;
+	int accepted;
+} feature;
+
+
+char *readLine(void);
+
+void xboardLoop(Board *board);

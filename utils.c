@@ -3,6 +3,8 @@
 
 #include "defs.h"
 
+extern int interrupt_flag;
+
 void printBitboard(bitboard board){
   int r, c;
   for (r = 7; r >= 0; r--){
@@ -218,31 +220,43 @@ int genBoard(Board* board, char* fen){
 	return 1;
 }
 
-void clearSq(Board* board, int sq){
+void removePiece(Board* board, int sq){
 	int p;
 	bitboard b;
-	b = BIT(sq);
 	p = board->squares[sq];
+	if (p == EMPTY) return;
 	
+	b = BIT(sq);
 	board->bits[p] &= ~b;
 	board->bits[COLOR[p]] &= ~b;
 	board->bits[OCCUPIED] &= ~b;
 	board->bits[EMPTY] |= b;
 	board->score -=VAL[p];
 	board->squares[sq] = EMPTY;
-	if (p <= BK) {
-		board->hash ^= PHASH(p, sq);
-	}
+	board->hash ^= PHASH(p, sq);
 }
 
+//only use when you know at compile time that sq is currently empty
+void placePiece(Board *board, int sq, int p) {
+	bitboard b;
+	if (p == EMPTY) return;
+	b = BIT(sq);
+	board->bits[p] |= b;
+	board->bits[COLOR[p]] |= b;
+	board->bits[OCCUPIED] |= b;
+	board->bits[EMPTY] &= ~b;
+	board->score += VAL[p];
+	board->squares[sq] = p;
+	board->hash ^= PHASH(p, sq);
+}
 
-void setSq(Board *board, int sq, int p) {
+void setPiece(Board *board, int sq, int p) {
 	int p0;
 	bitboard b;
-	b = BIT(sq);
 	p0 = board->squares[sq];
 	if (p == p0) return;
 	
+	b = BIT(sq);
 	board->bits[p0] &= ~b;
 	board->bits[p] |= b;
 	board->bits[COLOR[p0]] &= ~b;
@@ -285,8 +299,8 @@ void makeMove(Board* board, int mov) {
 		board->hash ^= CASTLEHASH(C_BK);
 	}
 	
-	clearSq(board, sq0);
-	setSq(board, sq1, p);
+	removePiece(board, sq0);
+	setPiece(board, sq1, p);
 	
 	switch (p) {	//special logic for special pieces
 		int mask;
@@ -294,19 +308,19 @@ void makeMove(Board* board, int mov) {
 			if (sq1 - sq0 == 16){    //double ahead, set enpassant
 				enpas = sq0+8;
 			} else if (sq1  == board->enpas){  //enpassant capture
-				clearSq(board, board->enpas - 8);
+				removePiece(board, board->enpas - 8);
 			} else if (sq1/8 == 7){ //pawn promotion
-				setSq(board, sq1, prom);
+				setPiece(board, sq1, prom);
 			}
 			break;
 		case BP:
 			if (sq0 - sq1 == 16){		//double ahead, set enpassant
 				enpas = sq1+8;
 			} else if (sq1  == board->enpas){		//enpassant capture
-				clearSq(board, board->enpas + 8);
+				removePiece(board, board->enpas + 8);
 			} else if (sq1/8 == 0){	//pawn promotion
-				//clearSq(board, sq1);
-				setSq(board, sq1, prom);
+				//removePiece(board, sq1);
+				setPiece(board, sq1, prom);
 			}
 			break;
 			
@@ -324,11 +338,11 @@ void makeMove(Board* board, int mov) {
 			}
 			board->castle &= (~mask);
 			if (sq1 - sq0 == 2){	//king side castling
-				clearSq(board, sq1+1);
-				setSq(board, sq1-1, WR + sd);
+				removePiece(board, sq1+1);
+				placePiece(board, sq1-1, WR + sd);
 			} else if (sq0 - sq1 == 2){  //queen side castling
-				clearSq(board, sq1-2);
-				setSq(board, sq1+1, WR + sd);
+				removePiece(board, sq1-2);
+				placePiece(board, sq1+1, WR + sd);
 			}
 			
 	}
@@ -368,15 +382,15 @@ void unmakeMove(Board *board, int mov) {
 		popBit(&diff);
 	}
 	board->castle = cast;
-	clearSq(board, sq1);
-	setSq(board, sq0, p);
-	setSq(board, capSq, cap);
+	removePiece(board, sq1);
+	placePiece(board, sq0, p);
+	placePiece(board, capSq, cap);
 	if ((p == WK || p == BK) && (sq0 - sq1 == 2 || sq0 - sq1 == -2)){ //castling: move the rook back
-		clearSq(board, (sq0 + sq1) / 2);
+		removePiece(board, (sq0 + sq1) / 2);
 		if (sq1 > sq0) { //king side
-			setSq(board, sq1 + 1, p - 2);
+			placePiece(board, sq1 + 1, p - 2);
 		} else { // queen side
-			setSq(board, sq1 - 2, p - 2);
+			placePiece(board, sq1 - 2, p - 2);
 		}
 	}
 	
@@ -1041,19 +1055,18 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 			}
 		}
 	}
-	orderMoves(board, moves0, moves - moves0);
+	//orderMoves(board, moves - moves0, moves0);
 	return moves - moves0;
 }
 
 
 
-void orderMoves(Board *board, int moves[], int numMoves) {
+void orderMoves(Board *board, int numMoves, int moves[]) {
 	int i;
 	int scores[MAX_MOVES];
 	int tableMove;
 	tableMove = getTableMove(board);
 	for (i = 0; i < numMoves; ++i) {
-		int tableMove;
 		scores[i] = ABS(VAL[CAP(moves[i])]);
 		if (moves[i] == tableMove) {
 			scores[i] = 2*K_VAL;
@@ -1073,6 +1086,7 @@ void orderMoves(Board *board, int moves[], int numMoves) {
 		}
 	}
 }
+
 /*
 int moveSearch(Board *board, int depth, int* score) {
 	int move;
@@ -1209,6 +1223,7 @@ int moveSearch(Board *board, int depth, int *score) {
 	int numMoves, i, moves[MAX_MOVES];
 	int bestMove;
 	int bestScore = MIN_VAL;
+	interrupt_flag = 0;
 	numMoves = getMoves(board, moves, 0);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
@@ -1228,11 +1243,13 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 	int nodeType = UPPER;
 	int bestMove = 0;
 	getTableBounds(board, &alpha, &beta, depthleft);
+	if (interrupt_flag) return alpha;
 	if (alpha >= beta) return alpha;
 	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
 		return quiescence(board, alpha, beta);
 	}
 	numMoves = getMoves(board, moves, 0);
+	orderMoves(board, numMoves, moves);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
 		makeMove(board, moves[i]);
