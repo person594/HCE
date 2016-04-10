@@ -51,6 +51,12 @@ int main(int argc, char* argv[]) {
 		}
 		readPolyglotBook(bookFile);
 		fclose(bookFile);
+	} else {
+		bookFile = fopen("book.bin", "r");
+		if (bookFile) {
+			readPolyglotBook(bookFile);
+			fclose(bookFile);
+		}
 	}
   //twoPlayerLoop(board);
   //onePlayerLoop(&board);
