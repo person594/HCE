@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 		readPolyglotBook(bookFile);
 		fclose(bookFile);
 	} else {
-		bookFile = fopen("book.bin", "r");
+		bookFile = fopen("/usr/share/hce/book.bin", "r");
 		if (bookFile) {
 			readPolyglotBook(bookFile);
 			fclose(bookFile);

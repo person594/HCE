@@ -272,7 +272,7 @@ void setPiece(Board *board, int sq, int p) {
 	}
 }
 
-void makeMove(Board* board, int mov) {
+int makeMove(Board* board, int mov) {
 	Board orig = *board;
 	int i, p, sq0, sq1, sd, prom, cast, enpas = NO_SQUARE;
 	sq0 = FROM(mov);
@@ -353,6 +353,11 @@ void makeMove(Board* board, int mov) {
 	board->ephash = EPHASH(board);	//calculate/store new ep has
 	board->hash ^= board->ephash;   //apply new ep hash
 	
+	if (sqAttacked(board, bsf(board->bits[WK + sd]), board->ply%2 == 0 ? WHITE : BLACK)) {
+		unmakeMove(board, mov);
+		return 0;
+	}
+	return 1;
 	//board->hash ^= PHASH(p, sq0);
 	//board->hash ^= PHASH(p, sq1);
 }
@@ -905,6 +910,25 @@ int getPos(char row, char rank){
 //4: black in check
 //-1: Stalemate
 int getGameStatus(Board *board) {
+	int moves[MAX_MOVES], nMoves, i;
+	int sd;
+	int check;
+	sd = 6*(board->ply%2);
+	check = sqAttacked(board, bsf(board->bits[WK+sd]), (board->ply%2 == 0) ? BLACK : WHITE );
+	nMoves = getMoves(board, moves, 0);
+	for (i = 0; i < nMoves; ++i) {
+		if (makeMove(board, moves[i])) {
+			unmakeMove(board, moves[i]);
+			return check * (3 + board->ply%2);
+		}
+	}
+	if (check) {
+		return 2 - board->ply%2;
+	} else {
+		return -1;
+	}
+	/*
+	
 	int i, sd, opponent, cast, status = 0;
 	opponent = BLACK - (board->ply%2);
 	sd = 6*(board->ply%2);
@@ -981,6 +1005,7 @@ int getGameStatus(Board *board) {
 		return 2 - (board->ply%2);
 	}
 	return -1;
+	*/
 }
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
@@ -1202,17 +1227,18 @@ int quiescence(Board *board, int alpha, int beta) {
 		int score;
 		//delta pruning
 		if (ABS(VAL[CAP(moves[i])]) + DELTA < alpha) continue;
-		makeMove(board, moves[i]);
-		score = -quiescence(board, -beta, -alpha);
-		unmakeMove(board, moves[i]);
-		if (score >= beta) {
-			nodeType = LOWER;
-			addToTable(board, beta, 0, nodeType, moves[i]);
-			return beta;
-		}
-		if (score > alpha) {
-			alpha = score;
-			bestMove = moves[i];
+		if (makeMove(board, moves[i])) {
+			score = -quiescence(board, -beta, -alpha);
+			unmakeMove(board, moves[i]);
+			if (score >= beta) {
+				nodeType = LOWER;
+				addToTable(board, beta, 0, nodeType, moves[i]);
+				return beta;
+			}
+			if (score > alpha) {
+				alpha = score;
+				bestMove = moves[i];
+			}
 		}
 	}
 	addToTable(board, beta, 0, nodeType, bestMove);
@@ -1227,12 +1253,13 @@ int moveSearch(Board *board, int depth, int *score) {
 	numMoves = getMoves(board, moves, 0);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
-		makeMove(board, moves[i]);
-		score = -alphaBeta(board, MIN_VAL, MAX_VAL, depth - 1);
-		unmakeMove(board, moves[i]);
-		if (score > bestScore) {
-			bestScore = score;
-			bestMove = moves[i];
+		if (makeMove(board, moves[i])) {
+			score = -alphaBeta(board, MIN_VAL, MAX_VAL, depth - 1);
+			unmakeMove(board, moves[i]);
+			if (score > bestScore) {
+				bestScore = score;
+				bestMove = moves[i];
+			}
 		}
 	}
 	return bestMove;
@@ -1252,18 +1279,19 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 	orderMoves(board, numMoves, moves);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
-		makeMove(board, moves[i]);
-		score = -alphaBeta(board, -beta, -alpha, depthleft - 1);
-		unmakeMove(board, moves[i]);
-		if (score >= beta) {
-			nodeType = LOWER;
-			addToTable(board, beta, depthleft, nodeType, moves[i]);
-			return beta;
-		}
-		if (score > alpha) {
-			alpha = score;
-			bestMove = moves[i];
-			nodeType = EXACT;
+		if (makeMove(board, moves[i])) {
+			score = -alphaBeta(board, -beta, -alpha, depthleft - 1);
+			unmakeMove(board, moves[i]);
+			if (score >= beta) {
+				nodeType = LOWER;
+				addToTable(board, beta, depthleft, nodeType, moves[i]);
+				return beta;
+			}
+			if (score > alpha) {
+				alpha = score;
+				bestMove = moves[i];
+				nodeType = EXACT;
+			}
 		}
 	}
 	addToTable(board, alpha, depthleft, nodeType, bestMove);

@@ -133,12 +133,9 @@ int fromAlg(Board *board, char* str) {
 		
 		if (move >= 0) {
 			int attacked;
-			makeMove(board, move);
-			attacked = sqAttacked(board, bsf(board->bits[WK + sd]), WHITE + (board->ply%2));
-			unmakeMove(board, move);
-			if (attacked) {	//puts king in check
-				return -2;
-			}
+			if (makeMove(board, move)) {
+				unmakeMove(board, move);
+			} else return -2;
 		}
 		return move;
 }

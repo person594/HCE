@@ -184,7 +184,7 @@ void printBitboard(bitboard);
 void printBoard(Board *);
 void initBoard(Board *);
 void clearPos(Board *, int);
-void makeMove(Board *, int);
+int makeMove(Board *, int);
 void unmakeMove(Board *, int);
 int sqAttacked(Board *, int, int);
 
