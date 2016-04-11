@@ -186,7 +186,8 @@ void initBoard(Board *);
 void clearPos(Board *, int);
 int makeMove(Board *, int);
 void unmakeMove(Board *, int);
-int sqAttacked(Board *, int, int);
+int sqAttacked(Board *board, int sq, int color);
+int inCheck(Board *board, int postMove);
 
 int popBit(bitboard*);
 int countBits(bitboard); 

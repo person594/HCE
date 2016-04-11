@@ -353,7 +353,7 @@ int makeMove(Board* board, int mov) {
 	board->ephash = EPHASH(board);	//calculate/store new ep has
 	board->hash ^= board->ephash;   //apply new ep hash
 	
-	if (sqAttacked(board, bsf(board->bits[WK + sd]), board->ply%2 == 0 ? WHITE : BLACK)) {
+	if (inCheck(board, 1)) {
 		unmakeMove(board, mov);
 		return 0;
 	}
@@ -509,6 +509,13 @@ int sqAttacked(Board *board, int sq, int side) {
 		}
 	}
 	return 0;
+}
+
+int inCheck(Board *board, int postMove) {
+	int sd, attacker;
+	sd = 6*(postMove - board->ply%2);
+		attacker = (sd == 0 ? BLACK : WHITE);
+	return sqAttacked(board, bsf(board->bits[WK+sd]), attacker);
 }
 
 /*
@@ -914,7 +921,7 @@ int getGameStatus(Board *board) {
 	int sd;
 	int check;
 	sd = 6*(board->ply%2);
-	check = sqAttacked(board, bsf(board->bits[WK+sd]), (board->ply%2 == 0) ? BLACK : WHITE );
+	check = inCheck(board, 0);
 	nMoves = getMoves(board, moves, 0);
 	for (i = 0; i < nMoves; ++i) {
 		if (makeMove(board, moves[i])) {
@@ -1269,6 +1276,7 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 	int numMoves, i, moves[MAX_MOVES];
 	int nodeType = UPPER;
 	int bestMove = 0;
+	int legalMove = 0;
 	getTableBounds(board, &alpha, &beta, depthleft);
 	if (interrupt_flag) return alpha;
 	if (alpha >= beta) return alpha;
@@ -1280,6 +1288,7 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 	for (i = 0; i < numMoves; ++i) {
 		int score;
 		if (makeMove(board, moves[i])) {
+			legalMove = 1;
 			score = -alphaBeta(board, -beta, -alpha, depthleft - 1);
 			unmakeMove(board, moves[i]);
 			if (score >= beta) {
@@ -1293,6 +1302,10 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 				nodeType = EXACT;
 			}
 		}
+	}
+	if (!legalMove) {
+		if (inCheck(board, 0)) return alpha;
+		else return 0;
 	}
 	addToTable(board, alpha, depthleft, nodeType, bestMove);
 	return alpha;
