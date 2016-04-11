@@ -62,7 +62,7 @@ void xboardLoop(Board *board) {
 		} else if (strcmp(word, "random") == 0) {
 			;//not supported, nop for the time being
 		} else if (strcmp(word, "force") == 0) {
-			player = 2; //force mode
+			player = 2; //no player
 		} else if (strcmp(word, "go") == 0) {
 			player = board->ply % 2;
 		} else if (strcmp(word, "playother") == 0) {

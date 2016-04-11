@@ -332,10 +332,9 @@ int getInputMove(Board *board) {
 			continue;
 		}
 		for (numTokens = 1; numTokens < MAXTOKENS && (tokens[numTokens] = strtok(0, " \t\v\n\r\f")); numTokens++);
-		if (!strcmp(tokens[0], "exit")) {
+		if (strcmp(tokens[0], "quit") == 0) {
 			exit(0);
-		}
-		if (!strcmp(tokens[0], "perft")) {
+		} else if (strcmp(tokens[0], "perft") == 0) {
 			int n;
 			if (numTokens == 2) {
 				n = strtol(tokens[1], 0, 10);
@@ -343,20 +342,22 @@ int getInputMove(Board *board) {
 			} else {
 				printf("usage : perft n\nn - number of ply to look ahead\n");
 			}
-			continue;
-		}
-		if (numTokens == 1) {
-			int move;
-			move = fromAlg(board, tokens[0]);
-			if (move >= 0) {
+		} else if (strcmp(tokens[0], "xboard") == 0) {
+			xboardLoop(board);
+			exit(0);
+		} else {
+			int move = 0;
+			if (numTokens == 1) {
+				move = fromAlg(board, tokens[0]);
+			}
+			if (move > 0) {
 				return move;
-			}
-			if (move == -3) {
+			} else if (move == -3) {
 				printf("ambiguous move.\n");
-				continue;
+			} else {
+				printf("invalid move / command: %s.\n", tokens[0]);
 			}
 		}
-		printf("invalid move / command: %s.\n", tokens[0]);
 	}
 	#undef MAXTOKENS
 }

@@ -59,8 +59,8 @@ int main(int argc, char* argv[]) {
 		}
 	}
   //twoPlayerLoop(board);
-  //onePlayerLoop(&board);
-  xboardLoop(&board);
+  onePlayerLoop(&board);
+  //xboardLoop(&board);
 }
 
 

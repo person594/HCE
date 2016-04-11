@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SEARCH_DEPTH 7
+#define SEARCH_DEPTH 9
 #define MAX_MOVES 256
 #define USE_TABLE
 
@@ -89,6 +89,7 @@ typedef struct {
 	int nodeType;
 	int move;					//the previously determined best move
 	int bookMove;
+	int utility;
 } tableEntry;
 
 
@@ -111,6 +112,8 @@ typedef struct {
   int squares[64];
   u64 hash;
   u64 ephash;		//last calculated en passant hash value, used for unapplying it.
+  //int entropy; //number of non-reversible events which have occurred, such as pawn advances, captures, and castling rights lost
+  //             //used for determining when to replace transposition table entries 
 } Board;
 
 
@@ -199,7 +202,8 @@ int validateBoardState(Board *board);
 int compareBoards(Board *b1, Board *b2);
 int getPiece(char);
 int getPos(char, char);
-bitboard pieceMoves(Board *, int, int);
+bitboard pieceMoves(Board *board, int p, int sq);
+bitboard pieceCaptures(Board *board, int p, int sq);
 
 int perftTest(Board *, int);
 int printMoves(Board *);
@@ -207,7 +211,7 @@ void twoPlayerLoop(Board *);
 void onePlayerLoop(Board *);
 int getGameStatus(Board *);
 
-int getMoves(Board *board, int moves[], int onlyCaptures);
+int getMoves(Board *board, int moves[], int useBook, int onlyCaptures);
 void orderMoves(Board *board, int numMoves, int moves[]);
 int alphaBetaMax(Board *, int, int, int, int *);
 int alphaBetaMin(Board *, int, int, int, int *);

@@ -452,6 +452,34 @@ int orthslide(bitboard occupied, int p0, int p1) {
 checks if side is attacking sq on the board.
 */
 int sqAttacked(Board *board, int sq, int side) {
+	bitboard attackers;
+	int aSd, dSd; //sd of the (maybe hypothetical) piece on the square being attacked
+	int pawnDelta;
+	aSd = (side == WHITE) ? 0 : 6;
+	dSd = 6 - aSd;
+	pawnDelta = (side == WHITE) ? -8 : 8;
+	//reorder these based on commonness
+	//pawn
+	attackers = BIT(sq+pawnDelta - 1) | BIT(sq + pawnDelta + 1);
+	attackers &= ROW(sq + pawnDelta);
+	if (attackers & board->bits[WP+aSd]) return 1;
+	//knight
+	attackers = pieceCaptures(board, WN+dSd, sq);
+	if (attackers & board->bits[WN+aSd]) return 1;
+	//bishop and queen diagonal
+	attackers = pieceCaptures(board, WB+dSd, sq);
+	if (attackers & (board->bits[WB+aSd] | board->bits[WQ+aSd]) ) return 1;
+	//rook and queen orthogonal
+	attackers = pieceCaptures(board, WR+dSd, sq);
+	if (attackers & (board->bits[WR+aSd] | board->bits[WQ+aSd]) ) return 1;
+	//king
+	attackers = pieceCaptures(board, WK+dSd, sq);
+	if (attackers & board->bits[WK+aSd]) return 1;
+	return 0;
+	
+	
+	
+	#if 0
 	int sd, i;
 	sd = (side == WHITE) ? 0 : 6;
 	
@@ -509,6 +537,7 @@ int sqAttacked(Board *board, int sq, int side) {
 		}
 	}
 	return 0;
+	#endif
 }
 
 int inCheck(Board *board, int postMove) {
@@ -922,7 +951,7 @@ int getGameStatus(Board *board) {
 	int check;
 	sd = 6*(board->ply%2);
 	check = inCheck(board, 0);
-	nMoves = getMoves(board, moves, 0);
+	nMoves = getMoves(board, moves, 0, 0);
 	for (i = 0; i < nMoves; ++i) {
 		if (makeMove(board, moves[i])) {
 			unmakeMove(board, moves[i]);
@@ -1016,7 +1045,7 @@ int getGameStatus(Board *board) {
 }
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
-int getMoves(Board *board, int* moves, int onlyCaptures) {
+int getMoves(Board *board, int* moves, int useBook, int onlyCaptures) {
 	int i, n, sd, count = 0, cast, enpas, bookMove, fromBook = 0, *moves0;
 	moves0 = moves;
 	sd = 6*(board->ply%2);
@@ -1025,7 +1054,7 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 	//invalid moves in the case of a hash collision.  We go throught the
 	//full list of moves anyway, and ensure the remembered move is present.
 	
-	bookMove = getBookMove(board);
+	bookMove = useBook ? getBookMove(board) : 0;
 	cast = board->castle;
 	for (i = WP; i <= WK; ++i) {
 		int p, sq;
@@ -1087,7 +1116,7 @@ int getMoves(Board *board, int* moves, int onlyCaptures) {
 			}
 		}
 	}
-	//orderMoves(board, moves - moves0, moves0);
+	orderMoves(board, moves - moves0, moves0);
 	return moves - moves0;
 }
 
@@ -1101,7 +1130,7 @@ void orderMoves(Board *board, int numMoves, int moves[]) {
 	for (i = 0; i < numMoves; ++i) {
 		scores[i] = ABS(VAL[CAP(moves[i])]);
 		if (moves[i] == tableMove) {
-			scores[i] = 2*K_VAL;
+			scores[i] = MAX_VAL;
 		}
 	}
 	//insertion sort these for now.  Investigate sorting networks later.
@@ -1229,7 +1258,7 @@ int quiescence(Board *board, int alpha, int beta) {
 	}
 	getTableBounds(board, &alpha, &beta, 0);
 	if (alpha >= beta) return alpha;
-	numMoves = getMoves(board, moves, 1);
+	numMoves = getMoves(board, moves, 1, 1);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
 		//delta pruning
@@ -1255,17 +1284,20 @@ int quiescence(Board *board, int alpha, int beta) {
 int moveSearch(Board *board, int depth, int *score) {
 	int numMoves, i, moves[MAX_MOVES];
 	int bestMove;
-	int bestScore = MIN_VAL;
+	int current_depth;
 	interrupt_flag = 0;
-	numMoves = getMoves(board, moves, 0);
-	for (i = 0; i < numMoves; ++i) {
-		int score;
-		if (makeMove(board, moves[i])) {
-			score = -alphaBeta(board, MIN_VAL, -bestScore, depth - 1);
-			unmakeMove(board, moves[i]);
-			if (score > bestScore) {
-				bestScore = score;
-				bestMove = moves[i];
+	for (current_depth = 0; current_depth < depth; ++current_depth) {
+		int alpha = MIN_VAL;
+		numMoves = getMoves(board, moves, 1, 0);
+		for (i = 0; i < numMoves; ++i) {
+			int score;
+			if (makeMove(board, moves[i])) {
+				score = -alphaBeta(board, MIN_VAL, -alpha, current_depth);
+				unmakeMove(board, moves[i]);
+				if (score > alpha) {
+					alpha = score;
+					bestMove = moves[i];
+				}
 			}
 		}
 	}
@@ -1283,8 +1315,7 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
 		return quiescence(board, alpha, beta);
 	}
-	numMoves = getMoves(board, moves, 0);
-	orderMoves(board, numMoves, moves);
+	numMoves = getMoves(board, moves, 1, 0);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
 		if (makeMove(board, moves[i])) {
@@ -1318,7 +1349,7 @@ int addToTable(Board *board, int score, int depth, int nodeType, int bestMove) {
 	i = HASHKEY(board->hash);
 	t = &transpositionTable[i];
 	if (t->hash == board->hash) { //previously seen position
-		if (t->depth < depth) return 0;
+		if (!(bestMove && ! t->move) && t->depth >= depth) return 0;
 	} else if (HASHKEY(t->hash) == i) { //type-2 error
 			if (0) return 0; //todo -- add replacement policy
 	}
@@ -1327,6 +1358,7 @@ int addToTable(Board *board, int score, int depth, int nodeType, int bestMove) {
 	t->value = score;
 	t->nodeType = nodeType;
 	t->move = bestMove;
+	t->utility = 0;
 	return 1;
 }
 
@@ -1361,10 +1393,13 @@ int getTableMove(Board *board) {
 	int i;
 	i = HASHKEY(board->hash);
 	t = &transpositionTable[i];
-	if (t->hash == board->hash && t->nodeType != BOOK) { 
+	if (t->hash == board->hash && t->nodeType != BOOK) {
+		++t->utility;
 		return t->move;
+	} else {
+		--t->utility;
+		return 0;
 	}
-	return 0;
 }
 
 void getTableBounds(Board *board, int *alpha, int *beta, int depth) {
@@ -1373,16 +1408,20 @@ void getTableBounds(Board *board, int *alpha, int *beta, int depth) {
 	i = HASHKEY(board->hash);
 	t = &transpositionTable[i];
 	if (t->hash == board->hash) {
-		if (t-> depth >= depth) {
+		if (t->depth >= depth) {
 			switch(t->nodeType) {
 				case EXACT:
 					*alpha = *beta = t->value;
 					break;
 				case LOWER:
-					*alpha = t->value;
+					if (*alpha < t->value) {
+						*alpha = t->value;
+					}
 					break;
 				case UPPER:
-					*beta = t->value;
+					if (*beta > t->value) {
+						*beta = t->value;
+					}
 					break;
 			}
 		}

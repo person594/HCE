@@ -3,6 +3,7 @@
 #include "defs.h"
 
 
+
 int perftTest(Board *board, int depth){
 	int i, nMoves, sum = 0;
 	int moves[MAX_MOVES];
@@ -10,7 +11,7 @@ int perftTest(Board *board, int depth){
 		return 1;
 	}
 	
-	nMoves = getMoves(board, moves, 0);
+	nMoves = getMoves(board, moves, 0, 0);
 	for (i = 0; i < nMoves; ++i) {
 		if (makeMove(board, moves[i])) {
 			sum += perftTest(board, depth - 1);
