@@ -34,6 +34,7 @@ void xboardLoop(Board *board) {
 					printf("feature %s=%d\n", features[i].name, features[i].i_value);
 				}
 			}
+			printf("feature done=1\n");
 		} else if (strcmp(word, "accepted") == 0) {
 			int i;
 			word = strtok(NULL, " ");
