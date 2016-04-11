@@ -1261,7 +1261,7 @@ int moveSearch(Board *board, int depth, int *score) {
 	for (i = 0; i < numMoves; ++i) {
 		int score;
 		if (makeMove(board, moves[i])) {
-			score = -alphaBeta(board, MIN_VAL, MAX_VAL, depth - 1);
+			score = -alphaBeta(board, MIN_VAL, -bestScore, depth - 1);
 			unmakeMove(board, moves[i]);
 			if (score > bestScore) {
 				bestScore = score;
