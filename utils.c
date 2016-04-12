@@ -161,6 +161,7 @@ int genBoard(Board* board, char* fen){
 	} else if (strcmp(side, "w") != 0) {
 		return 0;
 	}
+	newBoard.castle = 0;
 	if (strcmp(castling, "-") != 0) {
 		if (*castling == 'K' || *castling == 'A') {
 			newBoard.castle |= C_WK;
@@ -353,7 +354,7 @@ int makeMove(Board* board, int mov) {
 	board->ephash = EPHASH(board);	//calculate/store new ep has
 	board->hash ^= board->ephash;   //apply new ep hash
 	
-	if (inCheck(board, 1)) {
+	if (inCheck(board, (sd == 0 ? WHITE : BLACK))) {
 		unmakeMove(board, mov);
 		return 0;
 	}
@@ -410,7 +411,7 @@ void unmakeMove(Board *board, int mov) {
 int diagslide(bitboard occupied, int p0, int p1) {
 	int delta, p;
 	//quickly exit if the two positions are not diagonal
-	if (ABS(ROWDIF(p0, p1)) != ABS(RANKDIF(p0, p1))){
+	if (ABS(FILEDIF(p0, p1)) != ABS(RANKDIF(p0, p1))){
 		return 0;
 	}
 	if (p0 == p1){	//pieces don't attack their own position.
@@ -431,7 +432,7 @@ int diagslide(bitboard occupied, int p0, int p1) {
 
 int orthslide(bitboard occupied, int p0, int p1) {
 	int delta, p;
-	if (SAMERANK(p0, p1) == SAMEROW(p0, p1)){	//ensure p0 and p1 share either a row or rank, not both or neither
+	if (SAMERANK(p0, p1) == SAMEFILE(p0, p1)){	//ensure p0 and p1 share either a row or rank, not both or neither
 		return 0;
 	}
 	if (p1 > p0){
@@ -461,10 +462,10 @@ int sqAttacked(Board *board, int sq, int side) {
 	//reorder these based on commonness
 	//pawn
 	attackers = BIT(sq+pawnDelta - 1) | BIT(sq + pawnDelta + 1);
-	attackers &= ROW(sq + pawnDelta);
+	attackers &= RANKOF(sq + pawnDelta);
 	if (attackers & board->bits[WP+aSd]) return 1;
 	//knight
-	attackers = pieceCaptures(board, WN+dSd, sq);
+	attackers = TRANS(KNIGHTMOVE, FILEDIF(sq,E5), RANKDIF(sq, E5));
 	if (attackers & board->bits[WN+aSd]) return 1;
 	//bishop and queen diagonal
 	attackers = pieceCaptures(board, WB+dSd, sq);
@@ -495,18 +496,18 @@ int sqAttacked(Board *board, int sq, int side) {
 			*/
 			switch (p) {
 				case WP:
-					if (side == WHITE && RANKDIF(sq, sq0) == 1 && (ROWDIF(sq, sq0) == 1 || ROWDIF(sq, sq0) == -1)){
+					if (side == WHITE && RANKDIF(sq, sq0) == 1 && (FILEDIF(sq, sq0) == 1 || FILEDIF(sq, sq0) == -1)){
 						return 1;
 					}
 					break;
 				case BP:
-					if (side == BLACK && RANKDIF(sq, sq0) == -1 && (ROWDIF(sq, sq0) == 1 || ROWDIF(sq, sq0) == -1)){
+					if (side == BLACK && RANKDIF(sq, sq0) == -1 && (FILEDIF(sq, sq0) == 1 || FILEDIF(sq, sq0) == -1)){
 						return 1;
 					}
 					break;
 				case WN:
 				case BN:
-					if ((ABS(RANKDIF(sq, sq0)) == 2 && ABS(ROWDIF(sq, sq0)) == 1) || (ABS(RANKDIF(sq, sq0)) == 1 && ABS(ROWDIF(sq, sq0)) == 2)){
+					if ((ABS(RANKDIF(sq, sq0)) == 2 && ABS(FILEDIF(sq, sq0)) == 1) || (ABS(RANKDIF(sq, sq0)) == 1 && ABS(FILEDIF(sq, sq0)) == 2)){
 						return 1;
 					}
 					break;
@@ -530,7 +531,7 @@ int sqAttacked(Board *board, int sq, int side) {
 					break;
 				case WK:
 				case BK:
-					if (ABS(RANKDIF(sq0, sq)) <= 1 && ABS(ROWDIF(sq0, sq)) <= 1 && sq0 != sq){
+					if (ABS(RANKDIF(sq0, sq)) <= 1 && ABS(FILEDIF(sq0, sq)) <= 1 && sq0 != sq){
 						return 1;
 					}
 			}
@@ -540,10 +541,10 @@ int sqAttacked(Board *board, int sq, int side) {
 	#endif
 }
 
-int inCheck(Board *board, int postMove) {
+int inCheck(Board *board, int side) {
 	int sd, attacker;
-	sd = 6*(postMove - board->ply%2);
-		attacker = (sd == 0 ? BLACK : WHITE);
+	sd = (side == WHITE ? 0 : 6);
+	attacker = (side == WHITE ? BLACK : WHITE);
 	return sqAttacked(board, bsf(board->bits[WK+sd]), attacker);
 }
 
@@ -566,7 +567,7 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 			if (moves && sq/8 == 6){
 				moves |= (b0>>16 & empty);
 			}
-			moves |= (b0>>7 | b0>>9) & (enemy ) & RANK(sq-8);
+			moves |= (b0>>7 | b0>>9) & (enemy ) & RANKOF(sq-8);
 			return moves;
 		case WP:
 			enemy |= BIT(board->enpas);
@@ -574,11 +575,11 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 			if (moves && sq/8 == 1){
 				moves |= (b0<<16 & empty);
 			}
-			moves |= (b0<<7 | b0<<9) & (enemy ) & RANK(sq+8);
+			moves |= (b0<<7 | b0<<9) & (enemy ) & RANKOF(sq+8);
 			return moves;
 		case WN:
 		case BN:
-			moves = TRANS(KNIGHTMOVE, ROWDIF(sq,E5), RANKDIF(sq, E5)) & ~friendly;
+			moves = TRANS(KNIGHTMOVE, FILEDIF(sq,E5), RANKDIF(sq, E5)) & ~friendly;
 			break;
 		case WQ:
 		case BQ:
@@ -614,7 +615,7 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 		case WR:
 		case BR:
 			//east
-			b2 = RANK(sq);
+			b2 = RANKOF(sq);
 			b1 = b2 & ~((b0<<1)-1);
 			i = sf(b1&occupied);
 			moves |= (BIT(i+1) - 1) & b1;
@@ -623,7 +624,7 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 			i = sr(b1&occupied);
 			moves |= ~(BIT(i) - 1) & b1;
 			//north
-			b2 = ROW(sq);
+			b2 = FILEOF(sq);
 			b1 = b2 & ~((b0<<1)-1);
 			i = sf(b1&occupied);
 			moves |= (BIT(i+1) - 1) & b1;	
@@ -635,7 +636,7 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 			break;
 		case WK:
 		case BK:
-			moves = TRANS(KINGMOVE, ROWDIF(sq,E5), RANKDIF(sq, E5)) & ~friendly;
+			moves = TRANS(KINGMOVE, FILEDIF(sq,E5), RANKDIF(sq, E5)) & ~friendly;
 			if (p == WK && !sqAttacked(board, E1, BLACK)){
 				if ((board->castle & C_WK) && !sqAttacked(board, F1, BLACK) && !(occupied & 0x60ull)){
 					moves |= BIT(G1);
@@ -674,15 +675,15 @@ bitboard pieceCaptures(Board *board, int p, int sq) {
 	switch (p){
 		case BP:
 			enemy |= BIT(board->enpas);
-			moves = (b0>>7 | b0>>9) & (enemy ) & RANK(sq-8);
+			moves = (b0>>7 | b0>>9) & (enemy ) & RANKOF(sq-8);
 			return moves;
 		case WP:
 			enemy |= BIT(board->enpas);
-			moves = (b0<<7 | b0<<9) & (enemy ) & RANK(sq+8);
+			moves = (b0<<7 | b0<<9) & (enemy ) & RANKOF(sq+8);
 			return moves;
 		case WN:
 		case BN:
-			moves = TRANS(KNIGHTMOVE, ROWDIF(sq,E5), RANKDIF(sq, E5)) & enemy;
+			moves = TRANS(KNIGHTMOVE, FILEDIF(sq,E5), RANKDIF(sq, E5)) & enemy;
 			break;
 		case WQ:
 		case BQ:
@@ -714,7 +715,7 @@ bitboard pieceCaptures(Board *board, int p, int sq) {
 		case WR:
 		case BR:
 			//east
-			b2 = RANK(sq);
+			b2 = RANKOF(sq);
 			b1 = b2 & ~((b0<<1)-1);
 			i = sf(b1&occupied);
 			moves |= (BIT(i+1) - 1) & b1;
@@ -723,7 +724,7 @@ bitboard pieceCaptures(Board *board, int p, int sq) {
 			i = sr(b1&occupied);
 			moves |= ~(BIT(i) - 1) & b1;
 			//north
-			b2 = ROW(sq);
+			b2 = FILEOF(sq);
 			b1 = b2 & ~((b0<<1)-1);
 			i = sf(b1&occupied);
 			moves |= (BIT(i+1) - 1) & b1;	
@@ -735,7 +736,7 @@ bitboard pieceCaptures(Board *board, int p, int sq) {
 			break;
 		case WK:
 		case BK:
-			moves = TRANS(KINGMOVE, ROWDIF(sq,E5), RANKDIF(sq, E5)) & enemy;
+			moves = TRANS(KINGMOVE, FILEDIF(sq,E5), RANKDIF(sq, E5)) & enemy;
 	}
 	
 	
@@ -950,7 +951,7 @@ int getGameStatus(Board *board) {
 	int sd;
 	int check;
 	sd = 6*(board->ply%2);
-	check = inCheck(board, 0);
+	check = inCheck(board, (sd == 0 ? WHITE : BLACK));
 	nMoves = getMoves(board, moves, 0, 0);
 	for (i = 0; i < nMoves; ++i) {
 		if (makeMove(board, moves[i])) {
@@ -1335,7 +1336,7 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 		}
 	}
 	if (!legalMove) {
-		if (inCheck(board, 0)) return alpha;
+		if (inCheck(board, (board->ply%2 == 0 ? WHITE : BLACK))) return alpha;
 		else return 0;
 	}
 	addToTable(board, alpha, depthleft, nodeType, bestMove);

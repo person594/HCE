@@ -119,8 +119,8 @@ typedef struct {
 
 #define BIT(pos) ((pos > 63 || pos < 0) ? 0ull : 1ull << pos)
 
-#define RANK(pos) (R_1<<(pos&0x38))
-#define ROW(pos) (R_A<<(pos&0x7))
+#define RANKOF(pos) (R_1<<(pos&0x38))
+#define FILEOF(pos) (R_A<<(pos&0x7))
 #define PDIAG(pos) PDIAGS[7 + pos%8 - pos/8]
 #define NDIAG(pos) NDIAGS[pos%8 + pos/8]
 
@@ -135,13 +135,13 @@ typedef struct {
 #define TRANS(b, x, y) (y >= 0 ? NORTH((x >= 0 ? EAST(b, x) : WEST(b, -x)), y) : SOUTH((x >= 0 ? EAST(b, x) : WEST(b, -x)), -y))
 
 #define SAMERANK(p0, p1) !((p0^p1) >> 3)
-#define SAMEROW(p0, p1) !((p0^p1) & 0x7)
+#define SAMEFILE(p0, p1) !((p0^p1) & 0x7)
 /*
 11100
 11111
 */
 #define RANKDIF(p0, p1) ((p0>>3) - (p1>>3))
-#define ROWDIF(p0, p1) ((p0 & 0x7) - (p1 & 0x7))
+#define FILEDIF(p0, p1) ((p0 & 0x7) - (p1 & 0x7))
 
 #define ABS(n) (n >= 0 ? n : -n)
 /* 0eee  eeee  ssss  pppp  cccc  tttt  ttff  ffff
@@ -190,7 +190,7 @@ void clearPos(Board *, int);
 int makeMove(Board *, int);
 void unmakeMove(Board *, int);
 int sqAttacked(Board *board, int sq, int color);
-int inCheck(Board *board, int postMove);
+int inCheck(Board *board, int side);
 
 int popBit(bitboard*);
 int countBits(bitboard); 
