@@ -1122,6 +1122,29 @@ int getMoves(Board *board, int* moves, int useBook, int onlyCaptures) {
 }
 
 
+int getMobility(Board *board) {
+	int p, n = 0;
+	for (p = WP; p <= WK; ++p) {
+		int sq;
+		bitboard b;
+		b = board->bits[p];
+		while ((sq = popBit(&b)) != NO_SQUARE) {
+			n += countBits(pieceMoves(board, p, sq));
+		}
+	}
+	
+	for (p = BP; p <= BK; ++p) {
+		int sq;
+		bitboard b;
+		b = board->bits[p];
+		while ((sq = popBit(&b)) != NO_SQUARE) {
+			n -= countBits(pieceMoves(board, p, sq));
+		}
+	}
+	return n;
+	
+}
+
 
 void orderMoves(Board *board, int numMoves, int moves[]) {
 	int i;
@@ -1149,95 +1172,14 @@ void orderMoves(Board *board, int numMoves, int moves[]) {
 	}
 }
 
-/*
-int moveSearch(Board *board, int depth, int* score) {
-	int move;
-	if (board->ply %2 == 0) {
-		alphaBetaMax(board, 2*VAL[BK], 2*VAL[WK], SEARCH_DEPTH, &move);
-	} else {
-		alphaBetaMin(board, 2*VAL[BK], 2*VAL[WK], SEARCH_DEPTH, &move);
-	}
-	return move;
-}
-*/
 int eval(Board *board) {
+	int sign;
+	sign = 1 - 2*(board->ply%2);
 	//int pointsPerCenter = 35;
 	//return board->score + pointsPerCenter * (countBits(board->bits[WHITE] & CENTER) - countBits(board->bits[BLACK] & CENTER));
-	return board->ply%2 == 0 ? board->score : -board->score;
+	//return sign * (board->score + getMobility(board));
+	return sign*board->score;
 }
-
-/*
-//alpha = lower bound, beta = upper bound
-int alphaBetaMax(Board *board, int alpha, int beta, int depthleft) {
-	int numMoves, moves[MAX_MOVES], i;
-	int bestMove = 0;
-	int bestScore = MIN_VAL; //we use this instead of alpha, so we can remember the best move even if it doesn't make the alpha cutoff
-	tableEntry *t;
-	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
-		return eval(board);
-	}
-	t = &transpositionTable[HASHKEY(board->hash)];
-	if (t->hash == board->hash && t->depth >= depthleft) {
-		return t->value;
-	}
-	numMoves = getMoves(board, moves);
-	for (i = 0; i < numMoves; i++) {
-		int score;
-		makeMove(board, moves[i]);
-		score = alphaBetaMin(board, alpha, beta, depthleft - 1);
-		unmakeMove(board, moves[i]);
-		
-		if( score >= beta ) {
-			t->hash = board->hash;
-			t->depth = depthleft;
-			t->value = score;
-			t->move = moves[i];
-			return beta;   // fail hard beta-cutoff
-		} if( score > bestScore ) {
-			bestMove = moves[i];
-			bestScore = score;
-		}
-	}
-	t->hash = board->hash;
-	t->depth = depthleft;
-	t->value = bestScore;
-	t->move = bestMove;
-	return bestScore;
-}
-
-int alphaBetaMin(Board *board, int alpha, int beta, int depthleft) {
-	int numMoves, moves[MAX_MOVES], i;
-	int bestMove = 0;
-	int bestScore = MAX_VAL; //we use this instead of alpha, so we can remember the best move even if it doesn't make the alpha cutoff
-	tableEntry *t;
-	if (depthleft <= 0 || !board->bits[WK] || !board->bits[BK]) {
-		return eval(board);
-	}
-	t = &transpositionTable[HASHKEY(board->hash)];
-	if (t->hash == board->hash && t->depth >= depthleft) {
-		return t->value;
-	}
-	numMoves = getMoves(board, moves);
-	for (i = 0; i < numMoves; i++) {
-		int score;
-		makeMove(board, moves[i]);
-		score = alphaBetaMax(board, alpha, beta, depthleft - 1, &t->move);
-		unmakeMove(board, moves[i]);
-		
-		if (score <= alpha) {
-			t->hash = board->hash;
-			t->depth = depthLeft;
-			t->value = score;
-			*nextMove = moves[i];
-			return alpha;   // fail hard beta-cutoff
-		} if( score < beta ) {
-			*nextMove = moves[i];
-			beta = score; // alpha acts like max in MiniMax
-		}
-	}
-	return beta;
-}
-*/
 
 int quiescence(Board *board, int alpha, int beta) {
 	int numMoves, i, moves[MAX_MOVES], bestMove = 0;

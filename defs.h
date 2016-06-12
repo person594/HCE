@@ -64,8 +64,8 @@ enum {
 #define C_BQ 8
 
 #define P_VAL 100
-#define N_VAL 300
-#define B_VAL 300
+#define N_VAL 320
+#define B_VAL 330
 #define R_VAL 500
 #define Q_VAL 900
 #define K_VAL 90000
