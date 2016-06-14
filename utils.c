@@ -1145,31 +1145,94 @@ int getMobility(Board *board) {
 	
 }
 
+void quicksortMoves(int n, int moves[], int scores[]) {
+	int tmp;
+	int pivot, p, i, parity = 0;
+	#define SWAP(a, b) (tmp = scores[(a)], scores[(a)] = scores[(b)], scores[(b)] = tmp, tmp = moves[(a)], moves[(a)] = moves[(b)], moves[(b)] = tmp)
+	#define CSWAP(a, b) (scores[(a)] < scores[(b)] ? (SWAP((a), (b))) : 0)
+	//first try to use a sorting network if we know one for numMoves
+	switch(n) {
+		case 0:
+		case 1:
+			return;
+		case 2:
+			CSWAP(0, 1);
+			return;
+		case 3:
+			CSWAP(0, 1);
+			CSWAP(0, 2);
+			CSWAP(1, 2);
+			return;
+		case 4:
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(0, 2);
+			CSWAP(1, 3);
+			CSWAP(1, 2);
+			return;
+		case 5:
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(0, 2);
+			CSWAP(1, 4);
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(1, 2);
+			CSWAP(3, 4);
+			CSWAP(2, 3);
+			return;
+		case 6:
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(4, 5);
+			CSWAP(0, 2);
+			CSWAP(1, 4);
+			CSWAP(3, 5);
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(4, 5);
+			CSWAP(1, 2);
+			CSWAP(3, 4);
+			CSWAP(2, 3);
+			return;
+		default:
+			//partition
+			pivot = scores[n-1];
+			for (p = i = 0; i < n-1; ++i) {
+				//parity is a hack to try to make the pivot near the middle of the array when many values == pivot
+				if (scores[i] == pivot) {
+					parity = 1 - parity;
+				}
+				if (scores[i] >= pivot + parity) {
+					SWAP(p, i);
+					++p;
+				}
+			}
+			SWAP(p, n-1);
+			//recurse
+			quicksortMoves(p, moves, scores);
+			quicksortMoves(n - p - 1, &moves[p+1], &scores[p+1]);
+			return;
+	}
+	#undef SWAP
+	#undef CSWAP
+}
 
 void orderMoves(Board *board, int numMoves, int moves[]) {
+	int tmp;
 	int i;
 	int scores[MAX_MOVES];
 	int tableMove;
 	tableMove = getTableMove(board);
+	if (numMoves < 2) return;
 	for (i = 0; i < numMoves; ++i) {
 		scores[i] = ABS(VAL[CAP(moves[i])]);
 		if (moves[i] == tableMove) {
 			scores[i] = MAX_VAL;
 		}
 	}
-	//insertion sort these for now.  Investigate sorting networks later.
-	for (i = 1; i < numMoves; ++i) {
-		int j;
-		for (j = i; j > 0 && scores[j-1] < scores[j]; --j) {
-			int tmp;
-			tmp = scores[j-1];
-			scores[j-1] = scores[j];
-			scores[j] = tmp;
-			tmp = moves[j-1];
-			moves[j-1] = moves[j];
-			moves[j] = tmp;
-		}
-	}
+	quicksortMoves(numMoves, moves, scores);
+	return;
 }
 
 int eval(Board *board) {
