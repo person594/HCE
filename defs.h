@@ -222,6 +222,8 @@ int getTableMove(Board *board);
 int getBookMove(Board *board);
 void getTableBounds(Board *board, int *alpha, int *beta, int depth);
 
+int eval(Board *board);
+
 int fromAlg(Board *, char*);
 void toAlg(Board *, int, char*);
 char getSymbol(int);

@@ -367,6 +367,7 @@ int makeMove(Board* board, int mov) {
 void unmakeMove(Board *board, int mov) {
 	int sq0, sq1, cap, prom, enpas, capSq, p, cast, sd;
 	bitboard diff;
+	
 	sq0 = FROM(mov);
 	sq1 = TO(mov);
 	cap = CAP(mov);
@@ -1117,7 +1118,6 @@ int getMoves(Board *board, int* moves, int useBook, int onlyCaptures) {
 			}
 		}
 	}
-	orderMoves(board, moves - moves0, moves0);
 	return moves - moves0;
 }
 
@@ -1226,9 +1226,18 @@ void orderMoves(Board *board, int numMoves, int moves[]) {
 	tableMove = getTableMove(board);
 	if (numMoves < 2) return;
 	for (i = 0; i < numMoves; ++i) {
-		scores[i] = ABS(VAL[CAP(moves[i])]);
 		if (moves[i] == tableMove) {
 			scores[i] = MAX_VAL;
+		} else {
+			/*
+			if (makeMove(board, moves[i])) {
+				scores[i] = -eval(board);
+				unmakeMove(board, moves[i]);
+			} else {
+				scores[i] = MIN_VAL;
+			}
+			*/
+			scores[i] = ABS(VAL[CAP(moves[i])]);
 		}
 	}
 	quicksortMoves(numMoves, moves, scores);
@@ -1265,6 +1274,8 @@ int quiescence(Board *board, int alpha, int beta) {
 	getTableBounds(board, &alpha, &beta, 0);
 	if (alpha >= beta) return alpha;
 	numMoves = getMoves(board, moves, 1, 1);
+	orderMoves(board, numMoves, moves);
+
 	for (i = 0; i < numMoves; ++i) {
 		int score;
 		//delta pruning
@@ -1295,6 +1306,7 @@ int moveSearch(Board *board, int depth, int *score) {
 	for (current_depth = 0; current_depth < depth; ++current_depth) {
 		int alpha = MIN_VAL;
 		numMoves = getMoves(board, moves, 1, 0);
+		orderMoves(board, numMoves, moves);
 		for (i = 0; i < numMoves; ++i) {
 			int score;
 			if (makeMove(board, moves[i])) {
@@ -1322,6 +1334,7 @@ int alphaBeta(Board *board, int alpha, int beta, int depthleft) {
 		return quiescence(board, alpha, beta);
 	}
 	numMoves = getMoves(board, moves, 1, 0);
+	orderMoves(board, numMoves, moves);
 	for (i = 0; i < numMoves; ++i) {
 		int score;
 		if (makeMove(board, moves[i])) {
