@@ -3,6 +3,9 @@
 
 typedef unsigned long long int bitboard;
 
+extern bitboard PDIAGS[15];
+extern bitboard NDIAGS[15];
+
 #define R_1 0x00000000000000FFull
 #define R_2 0x000000000000FF00ull
 #define R_3 0x0000000000FF0000ull

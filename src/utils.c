@@ -4,6 +4,7 @@
 #include "defs.h"
 #include "movegen.h"
 #include "position.h"
+#include "transpositiontable.h"
 
 extern int interrupt_flag;
 
