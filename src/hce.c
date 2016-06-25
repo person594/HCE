@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "defs.h"
+#include "transpositiontable.h"
 
 #include <getopt.h>
 #include <string.h>
@@ -13,7 +14,7 @@ void signal_handler(int signal) {
 }
 
 int main(int argc, char* argv[]) {
-	Board board;
+	Position pos;
 	int n;
 	int c, option_index;
 	char *bookPath = 0;
@@ -28,15 +29,15 @@ int main(int argc, char* argv[]) {
 		//{"record", optional_argument, 0, 'r'},
 		{0,0,0,0}
 	};
-	initHashTable();
-	initBoard(&board);
+	initTranspositionTable();
+	initPosition(&pos);
 	while ((c = getopt_long(argc, argv, "b:p:", options, &option_index))!= -1) {
 		switch(c) {
 			case 'b':
 				bookPath = optarg;
 				break;
 			case 'p':
-				if (!optarg || !genBoard(&board, optarg)) {
+				if (!optarg || !loadFEN(&pos, optarg)) {
 					printf("Invalid position notation\n");
 					exit(1);
 				}
@@ -58,26 +59,26 @@ int main(int argc, char* argv[]) {
 			fclose(bookFile);
 		}
 	}
-  //twoPlayerLoop(board);
-  onePlayerLoop(&board);
-  //xboardLoop(&board);
+  //twoPlayerLoop(pos);
+  onePlayerLoop(&pos);
+  //xboardLoop(&pos);
 }
 
 
-void twoPlayerLoop(Board *board) {
+void twoPlayerLoop(Position *pos) {
 	int move, sd, status = 0;    //0: game on, 1: white wins, 2: black wins, -1: stalemate
 	while (!status){
 		char input[21];
 		printf("\n");
-		printBoard(board);
+		printPosition(pos);
 		printf("\n");
-		if (board->ply%2) {
+		if (pos->ply%2) {
 			printf("Black's move:\n");
 		} else {
 			printf("White's move:\n");
 		}
 		scanf("%20s", input);
-		while ((move = fromAlg(board, input)) < 0){
+		while ((move = fromAlg(pos, input)) < 0){
 			switch (move) {
 				case -1:
 				case -2:
@@ -92,10 +93,10 @@ void twoPlayerLoop(Board *board) {
 			}
 			scanf("%20s", input);
 		}
-		sd = (board->ply%2)*6;
-		makeMove(board, move);
-		validateBoardState(board);
-		status = getGameStatus(board);
+		sd = (pos->ply%2)*6;
+		makeMove(pos, move);
+		validatePosition(pos);
+		status = getGameStatus(pos);
 	}
 	switch (status) {
 		case -1:
@@ -110,28 +111,28 @@ void twoPlayerLoop(Board *board) {
 		}
 }
 
-void onePlayerLoop(Board *board) {
+void onePlayerLoop(Position *pos) {
 	int move, score, status = 0; //0: game on, 1: white wins, 2: black wins, -1: stalemate
-	validateBoardState(board);
+	validatePosition(pos);
 	printf("\n");
-	printBoard(board);
+	printPosition(pos);
 	printf("\n");
 	while (status!=1 && status != 2 && status != -1){
 		char input[21];
-		if (board->ply%2) {
+		if (pos->ply%2) {
 			printf("Black's move:\n");
-			move = moveSearch(board, SEARCH_DEPTH, &score);
-			toAlg(board, move, input);
+			move = moveSearch(pos, SEARCH_DEPTH, &score);
+			toAlg(pos, move, input);
 			printf("%s\n", input);
 		} else {
 			printf("White's move:\n");
-			move = getInputMove(board);
+			move = getInputMove(pos);
 		}
-		makeMove(board, move);
-		validateBoardState(board);
-		status = getGameStatus(board);
+		makeMove(pos, move);
+		validatePosition(pos);
+		status = getGameStatus(pos);
 		printf("\n");
-		printBoard(board);
+		printPosition(pos);
 		printf("\n");
 	}
 	switch (status) {

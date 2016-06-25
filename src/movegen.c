@@ -3,18 +3,18 @@
 /*
 	warning:  only generates pseudo-legal moves.  some might be non legal
 */
-bitboard pieceMoves(Board *board, int p, int sq) {
+bitboard pieceMoves(Position *pos, int p, int sq) {
 	int player, i;
 	bitboard b0, b1, b2, occupied, empty, friendly, enemy, moves = 0ull;
 	b0 = BIT(sq);
 	player = ISBLACK[p];
-	occupied = board->bits[OCCUPIED];
-	empty = board->bits[EMPTY];
-	friendly = board->bits[WHITE + player];
-	enemy = board->bits[BLACK - player];
+	occupied = pos->bits[OCCUPIED];
+	empty = pos->bits[EMPTY];
+	friendly = pos->bits[WHITE + player];
+	enemy = pos->bits[BLACK - player];
 	switch (p){
 		case BP:
-			enemy |= BIT(board->enpas);
+			enemy |= BIT(pos->enpas);
 			moves = (b0>>8) & empty;
 			if (moves && sq/8 == 6){
 				moves |= (b0>>16 & empty);
@@ -22,7 +22,7 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 			moves |= (b0>>7 | b0>>9) & (enemy ) & RANKOF(sq-8);
 			return moves;
 		case WP:
-			enemy |= BIT(board->enpas);
+			enemy |= BIT(pos->enpas);
 			moves = (b0<<8) & empty;
 			if (moves && sq/8 == 1){
 				moves |= (b0<<16 & empty);
@@ -89,18 +89,18 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 		case WK:
 		case BK:
 			moves = TRANS(KINGMOVE, FILEDIF(sq,E5), RANKDIF(sq, E5)) & ~friendly;
-			if (p == WK && !sqAttacked(board, E1, BLACK)){
-				if ((board->castle & C_WK) && !sqAttacked(board, F1, BLACK) && !(occupied & 0x60ull)){
+			if (p == WK && !sqAttacked(pos, E1, BLACK)){
+				if ((pos->castle & C_WK) && !sqAttacked(pos, F1, BLACK) && !(occupied & 0x60ull)){
 					moves |= BIT(G1);
 				}
-				if ((board->castle & C_WQ) && !sqAttacked(board, D1, BLACK) && !(occupied & 0x0eull)){
+				if ((pos->castle & C_WQ) && !sqAttacked(pos, D1, BLACK) && !(occupied & 0x0eull)){
 					moves |= BIT(C1);
 				}
-			} else if (p == BK && !sqAttacked(board, E8, WHITE)){
-				if ((board->castle & C_BK) && !sqAttacked(board, F8, WHITE) && !(occupied & 0x6000000000000000ull)){
+			} else if (p == BK && !sqAttacked(pos, E8, WHITE)){
+				if ((pos->castle & C_BK) && !sqAttacked(pos, F8, WHITE) && !(occupied & 0x6000000000000000ull)){
 					moves |= BIT(G8);
 				}
-				if ((board->castle & C_BQ) && !sqAttacked(board, D8, WHITE) && !(occupied & 0x0e00000000000000ull)){
+				if ((pos->castle & C_BQ) && !sqAttacked(pos, D8, WHITE) && !(occupied & 0x0e00000000000000ull)){
 					moves |= BIT(C8);
 				}
 			}
@@ -115,22 +115,22 @@ bitboard pieceMoves(Board *board, int p, int sq) {
 /*
 	warning:  only generates pseudo-legal moves.  some might be non legal
 */
-bitboard pieceCaptures(Board *board, int p, int sq) {
+bitboard pieceCaptures(Position *pos, int p, int sq) {
 	int player, i;
 	bitboard b0, b1, b2, occupied, empty, friendly, enemy, moves = 0ull;
 	b0 = BIT(sq);
 	player = ISBLACK[p];
-	occupied = board->bits[OCCUPIED];
-	empty = board->bits[EMPTY];
-	friendly = board->bits[WHITE + player];
-	enemy = board->bits[BLACK - player];
+	occupied = pos->bits[OCCUPIED];
+	empty = pos->bits[EMPTY];
+	friendly = pos->bits[WHITE + player];
+	enemy = pos->bits[BLACK - player];
 	switch (p){
 		case BP:
-			enemy |= BIT(board->enpas);
+			enemy |= BIT(pos->enpas);
 			moves = (b0>>7 | b0>>9) & (enemy ) & RANKOF(sq-8);
 			return moves;
 		case WP:
-			enemy |= BIT(board->enpas);
+			enemy |= BIT(pos->enpas);
 			moves = (b0<<7 | b0<<9) & (enemy ) & RANKOF(sq+8);
 			return moves;
 		case WN:
@@ -197,59 +197,59 @@ bitboard pieceCaptures(Board *board, int p, int sq) {
 
 
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
-int getMoves(Board *board, int* moves, int useBook, int onlyCaptures) {
+int getMoves(Position *pos, int* moves, int useBook, int onlyCaptures) {
 	int i, n, sd, count = 0, cast, enpas, bookMove, fromBook = 0, *moves0;
 	moves0 = moves;
-	sd = 6*(board->ply%2);
+	sd = 6*(pos->ply%2);
 	
 	//both of the next two lookups can generate non-captures, and possibly
 	//invalid moves in the case of a hash collision.  We go throught the
 	//full list of moves anyway, and ensure the remembered move is present.
 	
-	bookMove = useBook ? getBookMove(board) : 0;
-	cast = board->castle;
+	bookMove = useBook ? getBookMove(pos) : 0;
+	cast = pos->castle;
 	for (i = WP; i <= WK; ++i) {
 		int p, sq;
 		bitboard b;
 		p = sd + i;
-		b = board->bits[p];
+		b = pos->bits[p];
 		while ((sq = popBit(&b)) != NO_SQUARE) {
 			int m, cap;
 			bitboard movebits;
 			if (onlyCaptures){
-				movebits = pieceCaptures(board, p, sq);
+				movebits = pieceCaptures(pos, p, sq);
 			} else {
-				movebits = pieceMoves(board, p, sq);
+				movebits = pieceMoves(pos, p, sq);
 			}
 			while ((m = popBit(&movebits)) != NO_SQUARE) {
 				int move;
-				cap = board->squares[m];
+				cap = pos->squares[m];
 				if ((p == WP || p == BP) && cap == EMPTY && sq%8 != m%8) { //en passant
 					cap = BP - sd;
 				}
 				if ((p == WP && m/8 == 7) || (p == BP && m/8 == 0)) {	//pawn promotion
-					move = MOV(sq, m, cap, WQ, cast, board->enpas);
+					move = MOV(sq, m, cap, WQ, cast, pos->enpas);
 					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
 					} else {
 						*moves++ = move;
 					}
-					move = MOV(sq, m, cap, WN, cast, board->enpas);
+					move = MOV(sq, m, cap, WN, cast, pos->enpas);
 					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
 					} else {
 						*moves++ = move;
 					}
-					move = MOV(sq, m, cap, WR, cast, board->enpas);
+					move = MOV(sq, m, cap, WR, cast, pos->enpas);
 					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
 					} else {
 						*moves++ = move;
 					}
-					move = MOV(sq, m, cap, WB, cast, board->enpas);
+					move = MOV(sq, m, cap, WB, cast, pos->enpas);
 					if (move == bookMove) {
 							*moves0 = move;
 							return 1;
@@ -257,7 +257,7 @@ int getMoves(Board *board, int* moves, int useBook, int onlyCaptures) {
 						*moves++ = move;
 					}
 				} else {
-					move = MOV(sq, m, cap, EMPTY, cast, board->enpas);
+					move = MOV(sq, m, cap, EMPTY, cast, pos->enpas);
 					if (move == bookMove) {
 						*moves0 = move;
 						return 1;

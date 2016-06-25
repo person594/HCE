@@ -12,7 +12,7 @@ feature features[] = {
 
 int n_features = sizeof(features) / sizeof(feature);
 
-void xboardLoop(Board *board) {
+void xboardLoop(Position *pos) {
 	int version = 1;
 	int player = 2; //don't make moves
 	setbuf(stdout, NULL);
@@ -52,7 +52,7 @@ void xboardLoop(Board *board) {
 				}
 			}
 		} else if (strcmp(word, "new") == 0) {
-			initBoard(board);
+			initPosition(pos);
 			player = 1;
 		} else if (strcmp(word, "variant") == 0) {
 			//uh oh, variants not supported yet
@@ -64,9 +64,9 @@ void xboardLoop(Board *board) {
 		} else if (strcmp(word, "force") == 0) {
 			player = 2; //no player
 		} else if (strcmp(word, "go") == 0) {
-			player = board->ply % 2;
+			player = pos->ply % 2;
 		} else if (strcmp(word, "playother") == 0) {
-			player = 1 - (board->ply % 2);
+			player = 1 - (pos->ply % 2);
 		} else if (strcmp(word, "level") == 0) {
 			//TODO: add time controls
 			;
@@ -77,19 +77,19 @@ void xboardLoop(Board *board) {
 			;
 		} else {
 			int move;
-			move = fromAlg(board, word);
+			move = fromAlg(pos, word);
 			if (move < -1) {
 				printf("Illegal move: %s\n", word);
 			} else if (move > 0) {
-				makeMove(board, move);
+				makeMove(pos, move);
 			}
 		}
-		if (player == board->ply % 2) {
+		if (player == pos->ply % 2) {
 			char moveStr[21];
 			int move, score;
-			move = moveSearch(board, SEARCH_DEPTH, &score);
-			toAlg(board, move, moveStr);
-			makeMove(board, move);
+			move = moveSearch(pos, SEARCH_DEPTH, &score);
+			toAlg(pos, move, moveStr);
+			makeMove(pos, move);
 			printf("move %s\n", moveStr);
 		}
 	}

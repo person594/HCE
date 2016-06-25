@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "defs.h"
 
+#include "transpositiontable.h"
+
 int entries = 0;
 int collisions = 0;
 

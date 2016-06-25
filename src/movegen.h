@@ -4,9 +4,9 @@
 #include "defs.h"
 
 
-bitboard pieceMoves(Board *board, int p, int sq);
-bitboard pieceCaptures(Board *board, int p, int sq);
+bitboard pieceMoves(Position *pos, int p, int sq);
+bitboard pieceCaptures(Position *pos, int p, int sq);
 
-int getMoves(Board *board, int* moves, int useBook, int onlyCaptures);
+int getMoves(Position *pos, int* moves, int useBook, int onlyCaptures);
 
 #endif

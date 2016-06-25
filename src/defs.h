@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "position.h"
+
 #define SEARCH_DEPTH 9
 #define MAX_MOVES 256
 #define USE_TABLE
@@ -33,39 +35,6 @@ enum {
 	NO_SQUARE = 64
 };
 
-
-#define R_1 0x00000000000000FFull
-#define R_2 0x000000000000FF00ull
-#define R_3 0x0000000000FF0000ull
-#define R_4 0x00000000FF000000ull
-#define R_5 0x000000FF00000000ull
-#define R_6 0x0000FF0000000000ull
-#define R_7 0x00FF000000000000ull
-#define R_8 0xFF00000000000000ull
-
-#define R_A 0x0101010101010101ull
-#define R_B 0x0202020202020202ull
-#define R_C 0x0404040404040404ull
-#define R_D 0x0808080808080808ull
-#define R_E 0x1010101010101010ull
-#define R_F 0x2020202020202020ull
-#define R_G 0x4040404040404040ull
-#define R_H 0x8080808080808080ull
-
-#define CENTER 0x0000001818000000ull
-
-#define D_P 0x8040201008040201ull
-#define D_N 0x0102040810204080ull
-
-//bitboards for the moves of a knight and a king, each positioned at e5.
-#define KNIGHTMOVE 0x0028440044280000ull
-#define KINGMOVE 0x0000382838000000ull
-
-#define C_WK 1
-#define C_WQ 2
-#define C_BK 4
-#define C_BQ 8
-
 #define P_VAL 100
 #define N_VAL 320
 #define B_VAL 330
@@ -76,24 +45,10 @@ enum {
 #define MAX_VAL (2*K_VAL)
 #define MIN_VAL (-MAX_VAL)
 
-#define TABLESIZE (1<<24)
-
-typedef unsigned long long int bitboard;
-typedef unsigned long long int u64;
-
 #define EXACT 0
 #define LOWER 1
 #define UPPER 2
 #define BOOK 3 //for entries that only have an opening book move.  entries with opening book moves can have a type other than this, however
-typedef struct {
-	u64 hash;					//the full hashvalue of the position, as opposed to the index, which is of a smaller range
-	int depth;				//the depth left when this position was encountered.
-	int value;				//the value assigned to this
-	int nodeType;
-	int move;					//the previously determined best move
-	int bookMove;
-	int utility;
-} tableEntry;
 
 
 //    0   1   2   3   4   5   6   7   8   9   10  11  12     13     14        15
@@ -104,47 +59,8 @@ extern int COLOR[];
 extern bitboard PDIAGS[15];
 extern bitboard NDIAGS[15];
 extern const u64 hashvals[781];
-extern tableEntry transpositionTable[TABLESIZE];
+//extern tableEntry transpositionTable[TABLESIZE];
 
-typedef struct {
-  bitboard bits[16];
-  int ply;
-  int enpas;
-  int castle;
-  int score; //white score - black score.
-  int squares[64];
-  u64 hash;
-  u64 ephash;		//last calculated en passant hash value, used for unapplying it.
-  //int entropy; //number of non-reversible events which have occurred, such as pawn advances, captures, and castling rights lost
-  //             //used for determining when to replace transposition table entries 
-} Board;
-
-
-#define BIT(pos) ((pos > 63 || pos < 0) ? 0ull : 1ull << pos)
-
-#define RANKOF(pos) (R_1<<(pos&0x38))
-#define FILEOF(pos) (R_A<<(pos&0x7))
-#define PDIAG(pos) PDIAGS[7 + pos%8 - pos/8]
-#define NDIAG(pos) NDIAGS[pos%8 + pos/8]
-
-
-//macros to translate bitboards in a given direction
-#define NORTH(b, n) (b<<(8*n))
-#define SOUTH(b, n) (b>>(8*n))
-//#define EAST(b) ((b & ~R_H)<<1)
-//#define WEST(b) ((b & ~R_A)>>1)
-#define EAST(b, n) ((b&((R_A<<(8-n)) - R_A))<<n)
-#define WEST(b, n) ((b&~((R_A<<n) - R_A))>>n)
-#define TRANS(b, x, y) (y >= 0 ? NORTH((x >= 0 ? EAST(b, x) : WEST(b, -x)), y) : SOUTH((x >= 0 ? EAST(b, x) : WEST(b, -x)), -y))
-
-#define SAMERANK(p0, p1) !((p0^p1) >> 3)
-#define SAMEFILE(p0, p1) !((p0^p1) & 0x7)
-/*
-11100
-11111
-*/
-#define RANKDIF(p0, p1) ((p0>>3) - (p1>>3))
-#define FILEDIF(p0, p1) ((p0 & 0x7) - (p1 & 0x7))
 
 #define ABS(n) (n >= 0 ? n : -n)
 /* 0eee  eeee  ssss  pppp  cccc  tttt  ttff  ffff
@@ -187,13 +103,11 @@ e: en passant square before move
 
 int pos(bitboard);
 void printBitboard(bitboard);
-void printBoard(Board *);
-void initBoard(Board *);
-void clearPos(Board *, int);
-int makeMove(Board *, int);
-void unmakeMove(Board *, int);
-int sqAttacked(Board *board, int sq, int color);
-int inCheck(Board *board, int side);
+void printPosition(Position *);
+int makeMove(Position *, int);
+void unmakeMove(Position *, int);
+int sqAttacked(Position *pos, int sq, int color);
+int inCheck(Position *pos, int side);
 
 int popBit(bitboard*);
 int countBits(bitboard); 
@@ -201,39 +115,35 @@ int countBits(bitboard);
 int diagslide(bitboard, int, int);
 int orthslide(bitboard, int, int);
 
-int validateBoardState(Board *board);
-int compareBoards(Board *b1, Board *b2);
+int validatePosition(Position *pos);
+int comparePositions(Position *b1, Position *b2);
 int getPiece(char);
 int getPos(char, char);
 
-int perftTest(Board *, int);
-int printMoves(Board *);
-void twoPlayerLoop(Board *);
-void onePlayerLoop(Board *);
-int getGameStatus(Board *);
+int perftTest(Position *, int);
+int printMoves(Position *);
+void twoPlayerLoop(Position *);
+void onePlayerLoop(Position *);
+int getGameStatus(Position *);
 
-int getMoves(Board *board, int moves[], int useBook, int onlyCaptures);
-void orderMoves(Board *board, int numMoves, int moves[]);
-int alphaBetaMax(Board *, int, int, int, int *);
-int alphaBetaMin(Board *, int, int, int, int *);
-int alphaBeta(Board *board, int alpha, int beta, int depthleft);
-int moveSearch(Board *board, int depth, int *score);
-int addToTable(Board *board, int score, int depth, int nodeType, int bestMove);
-int getTableMove(Board *board);
-int getBookMove(Board *board);
-void getTableBounds(Board *board, int *alpha, int *beta, int depth);
+int getMoves(Position *pos, int moves[], int useBook, int onlyCaptures);
+void orderMoves(Position *pos, int numMoves, int moves[]);
+int alphaBetaMax(Position *, int, int, int, int *);
+int alphaBetaMin(Position *, int, int, int, int *);
+int alphaBeta(Position *pos, int alpha, int beta, int depthleft);
+int moveSearch(Position *pos, int depth, int *score);
+int addToTable(Position *pos, int score, int depth, int nodeType, int bestMove);
+int getTableMove(Position *pos);
+int getBookMove(Position *pos);
+void getTableBounds(Position *pos, int *alpha, int *beta, int depth);
 
-int eval(Board *board);
+int eval(Position *pos);
 
-int fromAlg(Board *, char*);
-void toAlg(Board *, int, char*);
+int fromAlg(Position *, char*);
+void toAlg(Position *, int, char*);
 char getSymbol(int);
 
-u64 getHashCode(Board *);
-void initHashTable();
-
-int genBoard(Board* board, char* fen);
-int getInputMove(Board *board);
+int getInputMove(Position *pos);
 
 int bsf(bitboard b);
 int bsr(bitboard b);
@@ -255,6 +165,6 @@ typedef struct {
 
 char *readLine(void);
 
-void xboardLoop(Board *board);
+void xboardLoop(Position *pos);
 
 #endif
