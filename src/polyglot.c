@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include "defs.h"
+#include "movegen.h"
+#include "move.h"
 
 #include "transpositiontable.h"
+#include "polyglot.h"
 
 int entries = 0;
 int collisions = 0;

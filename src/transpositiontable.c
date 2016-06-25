@@ -1,6 +1,9 @@
+#include <stdio.h>
+
 #include "defs.h"
 #include "transpositiontable.h"
-#include <stdio.h>
+#include "movegen.h"
+#include "move.h"
 
 //a random number for each combination of piece and square.  Squares 0-7 on the WP array represent en-passant column. castling status is stored on squares 0, 1, 3, and 7 of the BP array.
 //Black's turn is square 2 of the BP array.

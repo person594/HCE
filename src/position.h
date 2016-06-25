@@ -28,6 +28,11 @@ enum {
 	NO_SQUARE = 64
 };
 
+//    0   1   2   3   4   5   6   7   8   9   10  11  12     13     14        15
+enum {WP, WN, WB, WR, WQ, WK, BP, BN, BB, BR, BQ, BK, WHITE, BLACK, OCCUPIED, EMPTY};
+extern int ISBLACK[];
+extern int COLOR[];
+
 
 typedef struct {
   bitboard bits[16];
@@ -52,5 +57,8 @@ void initPosition(Position *pos);
 int loadFEN(Position* pos, char* fen);
 u64 hashPosition(Position *pos);
 
+int validatePosition(Position *pos);
+int comparePositions(Position *b1, Position *b2);
 
+void printPosition(Position *);
 #endif

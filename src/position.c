@@ -2,6 +2,11 @@
 
 #include "defs.h"
 #include "position.h"
+#include "algebraic.h"
+
+
+int ISBLACK[] = {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1};
+int COLOR[] = {WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, WHITE, BLACK, OCCUPIED, EMPTY};
 
 
 void clearPosition(Position *pos) {
@@ -196,4 +201,157 @@ u64 hashPosition(Position *pos) {
 		hash ^= WHITETURNHASH;
 	}
 	return hash;
+}
+
+
+int validatePosition(Position *pos) {
+	int p, n, squares[64], score = 0;
+	bitboard occupied = 0, white = 0, black = 0;
+	
+	for (n = 0; n < 64; n++) {
+		squares[n] = EMPTY;
+	}
+	
+	for (p = WP; p <= BK; p++){
+		bitboard pbits;
+		pbits = pos->bits[p];
+		if (occupied & pbits) {
+			printf("Multiple pieces at a single square.\n");
+			return 0;
+		}
+		occupied |= pbits;
+		if (p < BP) {
+			white |= pbits;
+		} else {
+			black |= pbits;
+		}
+		score += VAL[p] * countBits(pbits);
+		while (pbits) {
+			squares[popBit(&pbits)] = p;
+		}
+		
+	}
+	//generate the rest of our bitboards:
+	
+	if (white != pos->bits[WHITE] || black != pos->bits[BLACK] || occupied != pos->bits[OCCUPIED] || ~occupied != pos->bits[EMPTY]) {
+		printf("Incorrect derived bitboards.\n");
+		printf("white:\n");
+		printBitboard(pos->bits[WHITE]);
+		printf("\nblack:\n");
+		printBitboard(pos->bits[BLACK]);
+		printf("\noccupied:\n");
+		printBitboard(pos->bits[OCCUPIED]);
+		printf("\nempty:\n");
+		printBitboard(pos->bits[EMPTY]);
+		return 0;
+	}
+	
+	if (score != pos->score) {
+		printf("Incorrect score, expected: %d, actual: %d\n", score, pos->score);
+		return 0;
+	}
+	
+	for (n = 0; n < 64; n++) {
+		if (squares[n] != pos->squares[n]) {
+			printf("Incorrect piece buffer.");
+			return 0;
+		}
+	}
+	if (pos->ephash != EPHASH(pos)) {
+		printf("Incorrect en passant hash code, expected: %llx, actual: %llx.\n", EPHASH(pos), pos->ephash);
+		return 0;
+	}
+	
+	if (pos->hash != hashPosition(pos)) {
+		printf("Incorrect hash code, expected: %llx, actual: %llx.\n", hashPosition(pos), pos->hash);
+		return 0;
+	}
+	
+	return 1;
+}
+
+int comparePositions(Position *pos1, Position *pos2) {
+	int p, sq;
+	for (p = 0; p < 15; ++p) {
+		if (pos1->bits[p] !=pos2->bits[p]) {
+			printf("Bitboard mismatch for piece %d\n", p);
+			printBitboard(pos1->bits[p]);
+			printf("\n");
+			printBitboard(pos2->bits[p]);
+			printf("\n");
+			return 0;
+		}
+	}
+	if (pos1->ply != pos2->ply) {
+		printf("Ply mismatch\n%d\n%d\n", pos1->ply, pos2->ply);
+		return 0;
+	}
+	
+	if (pos1->enpas != pos2->enpas) {
+		printf("En passant square mismatch\n%d\n%d\n", pos1->enpas, pos2->enpas);
+		return 0;
+	}
+	
+	if (pos1->castle != pos2->castle) {
+		printf("Castling rights mismatch\n%x\n%x\n", pos1->castle, pos2->castle);
+		return 0;
+	}
+  if (pos1->score != pos2->score) {
+		printf("Score mismatch\n%d\n%d\n", pos1->score, pos2->score);
+		return 0;
+	}
+	for (sq = 0; sq < 64; ++sq) {
+		if (pos1->squares[sq] != pos2->squares[sq]) {
+			printf("Square mismatch\n");
+			printPosition(pos1);
+			printPosition(pos2);
+			return 0;
+		}
+	}
+	if (pos1->hash != pos2->hash) {
+		printf("Hash mismatch\n%x\n%x\n", pos1->hash, pos2->hash);
+		return 0;
+	}
+	if (pos1->ephash != pos2->ephash) {
+		printf("En passant hash mismatch\n%x\n%x\n", pos1->hash, pos2->hash);
+		return 0;
+	}
+	return 1;
+}
+
+void printPosition(Position *pos){
+	char chars[64];
+	int p, n, r, c;
+	for (n = 0; n < 64; n++){
+		chars[n] = ' ';
+	}
+	for (p = 0; p < 12; p++) {
+		int sq;
+		bitboard b = pos->bits[p];
+		while ((sq = popBit(&b)) != NO_SQUARE) {
+			chars[sq] = getSymbol(p);
+		}
+	}
+	/* en passant square
+	if (pos->enpas != NO_SQUARE) {
+		chars[pos->enpas] = 'x';
+	}
+	*/
+	//printf("%.8s\n%.8s\n%.8s\n%.8s\n%.8s\n%.8s\n%.8s\n%.8s\n", &chars[56], &chars[48], &chars[40], &chars[32], &chars[24], &chars[16], &chars[8], &chars[0]);
+	for (r = 7; r >= 0; r--) {
+		for (c = 0; c < 8; c++) {
+			int at = 1, fg = 31, bg;
+			if (r%2 == c%2) {
+				bg = 45;
+			} else {
+				bg = 47;
+			}
+			//fg = 77 - bg;
+			printf("%c[%d;%d;%dm",27,at,fg,bg);
+			printf("%c ", chars[8*r + c]);
+		}
+		printf("%c[0m", 27);
+		printf("\n");
+	}
+	//printf("%llx\n", pos->hash);
 }

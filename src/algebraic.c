@@ -3,6 +3,8 @@
 
 #include "defs.h"
 #include "movegen.h"
+#include "move.h"
+#include "algebraic.h"
 
 //returns -1 on bad syntax, -2 on an illegal move, and -3 on an ambiguous move
 int fromAlg(Position *pos, char* str) {

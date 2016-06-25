@@ -2,6 +2,10 @@
 
 #include "defs.h"
 #include "transpositiontable.h"
+#include "move.h"
+#include "search.h"
+#include "algebraic.h"
+#include "polyglot.h"
 
 #include <getopt.h>
 #include <string.h>

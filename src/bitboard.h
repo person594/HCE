@@ -60,6 +60,32 @@ extern bitboard NDIAGS[15];
 #define RANKDIF(p0, p1) ((p0>>3) - (p1>>3))
 #define FILEDIF(p0, p1) ((p0 & 0x7) - (p1 & 0x7))
 
+int countBits(bitboard b);
+
+
+int bsf(bitboard b);
+
+
+int bsr(bitboard b);
+
+//like bsf, but returns 63 if a 1 is not found.
+int sf(bitboard b);
+
+//like bsr, but returns 0 if a 1 is not found
+int sr(bitboard b);
+
+int popBit(bitboard* b);
+
+
+int popBit(bitboard*);
+int countBits(bitboard); 
+
+int pos(bitboard);
+
+
+
+
+void printBitboard(bitboard);
 
 
 #endif

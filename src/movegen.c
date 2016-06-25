@@ -1,4 +1,47 @@
 #include "movegen.h"
+#include "move.h"
+#include "transpositiontable.h"
+
+int diagslide(bitboard occupied, int p0, int p1) {
+	int delta, p;
+	//quickly exit if the two positions are not diagonal
+	if (ABS(FILEDIF(p0, p1)) != ABS(RANKDIF(p0, p1))){
+		return 0;
+	}
+	if (p0 == p1){	//pieces don't attack their own position.
+		return 0;
+	}
+	if (p0 < p1){ //positive delta
+		delta = ((p1 - p0) % 7) ? 9 : 7;
+	} else {			//negative delta
+		delta = ((p0 - p1) % 7) ? -9 : -7;
+	}
+	for (p = p0 + delta; p != p1; p+=delta){
+		if (occupied & BIT(p)){
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int orthslide(bitboard occupied, int p0, int p1) {
+	int delta, p;
+	if (SAMERANK(p0, p1) == SAMEFILE(p0, p1)){	//ensure p0 and p1 share either a row or rank, not both or neither
+		return 0;
+	}
+	if (p1 > p0){
+		delta = SAMERANK(p0, p1) ? 1 : 8;
+	} else {
+		delta = SAMERANK(p0, p1) ? -1 : -8;
+	}
+	for (p = p0 + delta; p != p1; p+=delta){
+		if (occupied & BIT(p)){
+			return 0;
+		}
+		
+	}
+	return 1;
+}
 
 /*
 	warning:  only generates pseudo-legal moves.  some might be non legal
@@ -196,6 +239,45 @@ bitboard pieceCaptures(Position *pos, int p, int sq) {
 }
 
 
+/*
+checks if side is attacking sq
+*/
+int sqAttacked(Position *pos, int sq, int side) {
+	bitboard attackers;
+	int aSd, dSd; //sd of the (maybe hypothetical) piece on the square being attacked
+	int pawnDelta;
+	aSd = (side == WHITE) ? 0 : 6;
+	dSd = 6 - aSd;
+	pawnDelta = (side == WHITE) ? -8 : 8;
+	//reorder these based on commonness
+	//pawn
+	attackers = BIT(sq+pawnDelta - 1) | BIT(sq + pawnDelta + 1);
+	attackers &= RANKOF(sq + pawnDelta);
+	if (attackers & pos->bits[WP+aSd]) return 1;
+	//knight
+	attackers = TRANS(KNIGHTMOVE, FILEDIF(sq,E5), RANKDIF(sq, E5));
+	if (attackers & pos->bits[WN+aSd]) return 1;
+	//bishop and queen diagonal
+	attackers = pieceCaptures(pos, WB+dSd, sq);
+	if (attackers & (pos->bits[WB+aSd] | pos->bits[WQ+aSd]) ) return 1;
+	//rook and queen orthogonal
+	attackers = pieceCaptures(pos, WR+dSd, sq);
+	if (attackers & (pos->bits[WR+aSd] | pos->bits[WQ+aSd]) ) return 1;
+	//king
+	attackers = pieceCaptures(pos, WK+dSd, sq);
+	if (attackers & pos->bits[WK+aSd]) return 1;
+	return 0;
+}
+
+int inCheck(Position *pos, int side) {
+	int sd, attacker;
+	sd = (side == WHITE ? 0 : 6);
+	attacker = (side == WHITE ? BLACK : WHITE);
+	return sqAttacked(pos, bsf(pos->bits[WK+sd]), attacker);
+}
+
+
+
 //finds moves and puts them in moves.  make sure moves is big enough lol.  returns number of moves found.
 int getMoves(Position *pos, int* moves, int useBook, int onlyCaptures) {
 	int i, n, sd, count = 0, cast, enpas, bookMove, fromBook = 0, *moves0;
@@ -270,3 +352,123 @@ int getMoves(Position *pos, int* moves, int useBook, int onlyCaptures) {
 	}
 	return moves - moves0;
 }
+
+
+void quicksortMoves(int n, int moves[], int scores[]) {
+	int tmp;
+	int pivot, p, i, parity = 0;
+	#define SWAP(a, b) (tmp = scores[(a)], scores[(a)] = scores[(b)], scores[(b)] = tmp, tmp = moves[(a)], moves[(a)] = moves[(b)], moves[(b)] = tmp)
+	#define CSWAP(a, b) (scores[(a)] < scores[(b)] ? (SWAP((a), (b))) : 0)
+	//first try to use a sorting network if we know one for numMoves
+	switch(n) {
+		case 0:
+		case 1:
+			return;
+		case 2:
+			CSWAP(0, 1);
+			return;
+		case 3:
+			CSWAP(0, 1);
+			CSWAP(0, 2);
+			CSWAP(1, 2);
+			return;
+		case 4:
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(0, 2);
+			CSWAP(1, 3);
+			CSWAP(1, 2);
+			return;
+		case 5:
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(0, 2);
+			CSWAP(1, 4);
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(1, 2);
+			CSWAP(3, 4);
+			CSWAP(2, 3);
+			return;
+		case 6:
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(4, 5);
+			CSWAP(0, 2);
+			CSWAP(1, 4);
+			CSWAP(3, 5);
+			CSWAP(0, 1);
+			CSWAP(2, 3);
+			CSWAP(4, 5);
+			CSWAP(1, 2);
+			CSWAP(3, 4);
+			CSWAP(2, 3);
+			return;
+		default:
+			//partition
+			pivot = scores[n-1];
+			for (p = i = 0; i < n-1; ++i) {
+				//parity is a hack to try to make the pivot near the middle of the array when many values == pivot
+				if (scores[i] == pivot) {
+					parity = 1 - parity;
+				}
+				if (scores[i] >= pivot + parity) {
+					SWAP(p, i);
+					++p;
+				}
+			}
+			SWAP(p, n-1);
+			//recurse
+			quicksortMoves(p, moves, scores);
+			quicksortMoves(n - p - 1, &moves[p+1], &scores[p+1]);
+			return;
+	}
+	#undef SWAP
+	#undef CSWAP
+}
+
+
+void orderMoves(Position *pos, int numMoves, int moves[]) {
+	int tmp;
+	int i;
+	int scores[MAX_MOVES];
+	int tableMove;
+	tableMove = getTableMove(pos);
+	if (numMoves < 2) return;
+	for (i = 0; i < numMoves; ++i) {
+		if (moves[i] == tableMove) {
+			scores[i] = MAX_VAL;
+		} else {
+			/*
+			if (makeMove(pos, moves[i])) {
+				scores[i] = -eval(pos);
+				unmakeMove(pos, moves[i]);
+			} else {
+				scores[i] = MIN_VAL;
+			}
+			*/
+			scores[i] = ABS(VAL[CAP(moves[i])]);
+		}
+	}
+	quicksortMoves(numMoves, moves, scores);
+	return;
+}
+
+
+int perftTest(Position *pos, int depth){
+	int i, nMoves, sum = 0;
+	int moves[MAX_MOVES];
+	if (depth == 0) {
+		return 1;
+	}
+	
+	nMoves = getMoves(pos, moves, 0, 0);
+	for (i = 0; i < nMoves; ++i) {
+		if (makeMove(pos, moves[i])) {
+			sum += perftTest(pos, depth - 1);
+			unmakeMove(pos, moves[i]);
+		}
+	}
+	return sum;
+}
+

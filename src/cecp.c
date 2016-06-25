@@ -2,6 +2,8 @@
 #include <string.h>
 
 #include "defs.h"
+#include "move.h"
+#include "search.h"
 
 feature features[] = {
 	{"variants", 0, "normal", 0},
