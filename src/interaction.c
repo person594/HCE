@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "defs.h"
+#include "movegen.h"
 
 //returns -1 on bad syntax, -2 on an illegal move, and -3 on an ambiguous move
 int fromAlg(Board *board, char* str) {

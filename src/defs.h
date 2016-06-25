@@ -1,3 +1,6 @@
+#ifndef DEFS_H
+#define DEFS_H
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -202,8 +205,6 @@ int validateBoardState(Board *board);
 int compareBoards(Board *b1, Board *b2);
 int getPiece(char);
 int getPos(char, char);
-bitboard pieceMoves(Board *board, int p, int sq);
-bitboard pieceCaptures(Board *board, int p, int sq);
 
 int perftTest(Board *, int);
 int printMoves(Board *);
@@ -255,3 +256,5 @@ typedef struct {
 char *readLine(void);
 
 void xboardLoop(Board *board);
+
+#endif
